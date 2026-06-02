@@ -1,0 +1,9 @@
+# Drop the launcher / splash assets here:
+#   app_icon.png             (1024×1024, opaque)
+#   app_icon_foreground.png  (foreground layer, adaptive icon)
+#   splash.png               (used by flutter_native_splash)
+#   splash_android12.png     (Android 12 splash, 1152×1152 centred)
+#
+# After replacing these PNGs, run:
+#   make icons
+#   make splash

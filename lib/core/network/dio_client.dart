@@ -1,0 +1,44 @@
+import 'package:datasolids_mobile/core/config/env.dart';
+import 'package:datasolids_mobile/core/config/flavor.dart';
+import 'package:datasolids_mobile/core/network/interceptors/auth_interceptor.dart';
+import 'package:datasolids_mobile/core/network/interceptors/error_interceptor.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+
+/// Single configured Dio instance for the whole app. Feature API clients
+/// (Retrofit-generated or hand-written) take this Dio as a constructor
+/// arg — they don't construct their own.
+final dioProvider = Provider<Dio>((ref) {
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: '${Env.instance.apiBaseUrl}/api/v1',
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      // Don't auto-throw on 4xx — we want to inspect the body. The
+      // ErrorInterceptor wraps non-2xx into typed AppFailure later.
+      validateStatus: (status) => status != null && status < 500,
+    ),
+  );
+
+  dio.interceptors.addAll([
+    AuthInterceptor(ref),
+    ErrorInterceptor(),
+    if (Env.instance.flavor != Flavor.production)
+      PrettyDioLogger(
+        requestHeader: false,
+        requestBody: true,
+        responseBody: true,
+        responseHeader: false,
+        compact: true,
+        maxWidth: 100,
+      ),
+  ]);
+
+  return dio;
+});

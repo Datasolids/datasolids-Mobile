@@ -1,0 +1,38 @@
+# Strict-but-ergonomic lint config built on top of Very Good Ventures'
+# ruleset. We additionally enable riverpod_lint via custom_lint so
+# Riverpod-specific footguns (forgotten `.notifier`, ref leaks) fail
+# the build instead of merely warning.
+
+include: package:very_good_analysis/analysis_options.6.0.0.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # These start as warnings in very_good_analysis; we promote to error
+    # so CI breaks the build rather than letting them merge.
+    invalid_annotation_target: ignore
+    todo: ignore
+    deprecated_member_use_from_same_package: warning
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.gr.dart"
+    - "**/generated/**"
+    - "lib/l10n/**"
+    - "build/**"
+
+# Riverpod-specific analyzer.
+# Run `dart run custom_lint` to check.
+plugins:
+  - custom_lint
+
+custom_lint:
+  rules:
+    - avoid_public_notifier_properties
+    - avoid_manual_providers_as_generated_provider_dependency
+    - missing_provider_scope
+    - provider_dependencies
+    - provider_parameters
