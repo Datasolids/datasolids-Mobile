@@ -132,6 +132,74 @@ class ClinicalApi {
     );
     return ImagingStudyDetail.fromJson(resp.data ?? const {});
   }
+
+  // ----- MedicationRequest --------------------------------------------------
+
+  Future<MedicationRequestPage> listMedicationRequests({
+    String? statusFilter,     // 'active' | 'completed' | …
+    bool active = false,      // shorthand for status=active
+    bool past = false,        // shorthand for everything not active
+    String? intent,
+    String? q,
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/clinical/medication-requests/',
+      queryParameters: {
+        if (statusFilter != null && statusFilter.isNotEmpty)
+          'status': statusFilter,
+        if (active) 'active': 'true',
+        if (past) 'past': 'true',
+        if (intent != null && intent.isNotEmpty) 'intent': intent,
+        if (q != null && q.isNotEmpty) 'q': q,
+        'offset': offset,
+        'limit': limit,
+      },
+    );
+    return MedicationRequestPage.fromJson(resp.data ?? const {});
+  }
+
+  Future<MedicationRequestDetail> getMedicationRequest(String id) async {
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/clinical/medication-requests/$id/',
+    );
+    return MedicationRequestDetail.fromJson(resp.data ?? const {});
+  }
+
+  // ----- Condition ----------------------------------------------------------
+
+  Future<ConditionPage> listConditions({
+    String? clinicalStatus,
+    bool active = false,
+    bool resolved = false,
+    String? category,
+    String? q,
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/clinical/conditions/',
+      queryParameters: {
+        if (clinicalStatus != null && clinicalStatus.isNotEmpty)
+          'clinical_status': clinicalStatus,
+        if (active) 'active': 'true',
+        if (resolved) 'resolved': 'true',
+        if (category != null && category.isNotEmpty) 'category': category,
+        if (q != null && q.isNotEmpty) 'q': q,
+        'offset': offset,
+        'limit': limit,
+      },
+    );
+    return ConditionPage.fromJson(resp.data ?? const {});
+  }
+
+  Future<ConditionDetail> getCondition(String id) async {
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/clinical/conditions/$id/',
+    );
+    return ConditionDetail.fromJson(resp.data ?? const {});
+  }
 }
 
 final clinicalApiProvider = Provider<ClinicalApi>((ref) {

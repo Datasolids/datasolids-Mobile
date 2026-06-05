@@ -1,6 +1,6 @@
-// Medications list — typed clinical endpoint.
-// /clinical/medication-requests/  →  MedicationDetailScreen on tap.
-// Orange theme matches the My Pod tile.
+// Conditions list — typed clinical endpoint.
+// /clinical/conditions/ → ConditionDetailScreen on tap.
+// Red theme matches the My Pod tile.
 
 import 'package:datasolids_mobile/core/theme/app_colors.dart';
 import 'package:datasolids_mobile/features/pod/data/dtos/clinical.dart';
@@ -10,18 +10,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 
-const Color _kAccent = Color(0xFFEA580C);  // orange — matches My Pod tile
+const Color _kAccent = Color(0xFFDC2626); // red — matches My Pod tile
 
 
-class MedicationsListScreen extends ConsumerStatefulWidget {
-  const MedicationsListScreen({super.key});
+class ConditionsListScreen extends ConsumerStatefulWidget {
+  const ConditionsListScreen({super.key});
   @override
-  ConsumerState<MedicationsListScreen> createState() =>
-      _MedicationsListScreenState();
+  ConsumerState<ConditionsListScreen> createState() =>
+      _ConditionsListScreenState();
 }
 
-class _MedicationsListScreenState
-    extends ConsumerState<MedicationsListScreen> {
+class _ConditionsListScreenState
+    extends ConsumerState<ConditionsListScreen> {
   final ScrollController _scroll = ScrollController();
 
   @override
@@ -38,14 +38,14 @@ class _MedicationsListScreenState
   void _maybeLoadMore() {
     if (_scroll.position.pixels >=
         _scroll.position.maxScrollExtent - 400) {
-      ref.read(medicationsControllerProvider.notifier).loadMore();
+      ref.read(conditionsControllerProvider.notifier).loadMore();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(medicationsControllerProvider);
-    final notifier = ref.read(medicationsControllerProvider.notifier);
+    final state = ref.watch(conditionsControllerProvider);
+    final notifier = ref.read(conditionsControllerProvider.notifier);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F2),
@@ -81,10 +81,10 @@ class _MedicationsListScreenState
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (context, i) => _MedRow(
+                      (context, i) => _ConditionRow(
                         item: state.items[i],
                         onTap: () => context.push(
-                          '/pod/clinical/medication-request/${state.items[i].id}',
+                          '/pod/clinical/condition/${state.items[i].id}',
                         ),
                       ),
                       childCount: state.items.length,
@@ -121,7 +121,7 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Medications',
+                'Conditions',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -131,7 +131,7 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                total == 1 ? '1 medication' : '$total medications',
+                total == 1 ? '1 condition' : '$total conditions',
                 style: TextStyle(
                   fontSize: 13,
                   color: AppColors.textMuted,
@@ -168,7 +168,7 @@ class _CircleBackButton extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Filter chips: All / Active / Past
+// Filter chips: All / Active / Resolved
 // ─────────────────────────────────────────────────────────────────
 
 class _FilterChips extends StatelessWidget {
@@ -180,11 +180,11 @@ class _FilterChips extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _Chip(label: 'All',    selected: active == 'all',    onTap: () => onTap('all')),
+        _Chip(label: 'All',      selected: active == 'all',      onTap: () => onTap('all')),
         const SizedBox(width: 10),
-        _Chip(label: 'Active', selected: active == 'active', onTap: () => onTap('active')),
+        _Chip(label: 'Active',   selected: active == 'active',   onTap: () => onTap('active')),
         const SizedBox(width: 10),
-        _Chip(label: 'Past',   selected: active == 'past',   onTap: () => onTap('past')),
+        _Chip(label: 'Resolved', selected: active == 'resolved', onTap: () => onTap('resolved')),
       ],
     );
   }
@@ -227,9 +227,9 @@ class _Chip extends StatelessWidget {
 // Row
 // ─────────────────────────────────────────────────────────────────
 
-class _MedRow extends StatelessWidget {
-  const _MedRow({required this.item, required this.onTap});
-  final MedicationRequestSummary item;
+class _ConditionRow extends StatelessWidget {
+  const _ConditionRow({required this.item, required this.onTap});
+  final ConditionSummary item;
   final VoidCallback onTap;
 
   @override
@@ -260,7 +260,7 @@ class _MedRow extends StatelessWidget {
                   color: _kAccent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.medication_outlined, color: _kAccent, size: 22),
+                child: Icon(Icons.favorite_outline, color: _kAccent, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -268,7 +268,7 @@ class _MedRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.title.isEmpty ? 'Medication' : item.title,
+                      item.title.isEmpty ? 'Condition' : item.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -290,7 +290,10 @@ class _MedRow extends StatelessWidget {
                   ],
                 ),
               ),
-              _StatusPill(status: item.status, isActive: item.isActive),
+              _StatusPill(
+                clinicalStatus: item.clinicalStatus,
+                severity: item.severity,
+              ),
               const SizedBox(width: 4),
               Icon(Icons.chevron_right, size: 20, color: AppColors.textSubtle),
             ],
@@ -300,14 +303,11 @@ class _MedRow extends StatelessWidget {
     );
   }
 
-  static String _subtitle(MedicationRequestSummary m) {
+  static String _subtitle(ConditionSummary c) {
     final pieces = <String>[];
-    if ((m.doseQuantity ?? '').isNotEmpty) {
-      pieces.add('${m.doseQuantity} ${m.doseUnit ?? ''}'.trim());
-    }
-    if ((m.routeText ?? '').isNotEmpty) pieces.add(m.routeText!);
-    if ((m.requesterName ?? '').isNotEmpty) pieces.add(m.requesterName!);
-    if (m.authoredAt != null) pieces.add(_formatShortDate(m.authoredAt!));
+    if (c.primaryCategory.isNotEmpty) pieces.add(c.primaryCategory);
+    if (c.severityCode.isNotEmpty) pieces.add(c.severityCode);
+    if (c.onsetAt != null) pieces.add('onset ${_formatShortDate(c.onsetAt!)}');
     return pieces.join(' • ');
   }
 
@@ -321,16 +321,14 @@ class _MedRow extends StatelessWidget {
 }
 
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.status, required this.isActive});
-  final String status;
-  final bool isActive;
+  const _StatusPill({required this.clinicalStatus, required this.severity});
+  final String clinicalStatus;
+  final String severity;
 
   @override
   Widget build(BuildContext context) {
-    if (status.isEmpty) return const SizedBox.shrink();
-    final (bg, fg) = isActive
-        ? (const Color(0xFFE6F4EA), const Color(0xFF1B7F3A))
-        : (const Color(0xFFEEF1F4), AppColors.textMuted);
+    if (clinicalStatus.isEmpty) return const SizedBox.shrink();
+    final (bg, fg) = _colorsFor(clinicalStatus, severity);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
@@ -338,7 +336,7 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        status.toUpperCase(),
+        clinicalStatus.toUpperCase(),
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w800,
@@ -347,6 +345,25 @@ class _StatusPill extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static (Color, Color) _colorsFor(String status, String severity) {
+    // Resolved / inactive / remission → muted green-gray
+    final s = status.toLowerCase();
+    if (s == 'resolved' || s == 'inactive' || s == 'remission') {
+      return (const Color(0xFFEEF1F4), AppColors.textMuted);
+    }
+    // Active conditions colored by severity.
+    switch (severity) {
+      case 'danger':
+        return (const Color(0xFFFCE4E4), const Color(0xFFA42D2D));
+      case 'warning':
+        return (const Color(0xFFFFF4DA), const Color(0xFFA15C00));
+      case 'info':
+        return (const Color(0xFFE6F0FB), const Color(0xFF1B5FA8));
+      default:
+        return (const Color(0xFFFCE4E4), const Color(0xFFA42D2D));
+    }
   }
 }
 
@@ -394,7 +411,7 @@ class _ErrorBlock extends StatelessWidget {
           children: [
             Icon(Icons.cloud_off_outlined, color: AppColors.textMuted, size: 32),
             const SizedBox(height: 10),
-            Text("Couldn't load medications",
+            Text("Couldn't load conditions",
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
@@ -429,10 +446,10 @@ class _EmptyBlock extends StatelessWidget {
               color: _kAccent.withOpacity(0.10),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(Icons.medication_outlined, color: _kAccent, size: 30),
+            child: Icon(Icons.favorite_outline, color: _kAccent, size: 30),
           ),
           const SizedBox(height: 14),
-          Text('No medications yet',
+          Text('No conditions yet',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
@@ -440,7 +457,7 @@ class _EmptyBlock extends StatelessWidget {
               )),
           const SizedBox(height: 6),
           Text(
-            'Connect a provider that exposes prescription data.',
+            'Diagnoses and problem-list items from your providers will show up here.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,

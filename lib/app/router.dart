@@ -5,6 +5,8 @@ import 'package:datasolids_mobile/features/auth/presentation/screens/signup_scre
 import 'package:datasolids_mobile/features/connect/presentation/screens/connect_ehr_screen.dart';
 import 'package:datasolids_mobile/features/connect/presentation/screens/select_health_system_screen.dart';
 import 'package:datasolids_mobile/features/home/presentation/screens/home_screen.dart';
+import 'package:datasolids_mobile/features/pod/presentation/screens/condition_detail_screen.dart';
+import 'package:datasolids_mobile/features/pod/presentation/screens/conditions_list_screen.dart';
 import 'package:datasolids_mobile/features/pod/presentation/screens/diagnostic_report_detail_screen.dart';
 import 'package:datasolids_mobile/features/pod/presentation/screens/diagnostic_reports_list_screen.dart';
 import 'package:datasolids_mobile/features/pod/presentation/screens/document_reference_detail_screen.dart';
@@ -12,6 +14,7 @@ import 'package:datasolids_mobile/features/pod/presentation/screens/documents_li
 import 'package:datasolids_mobile/features/pod/presentation/screens/imaging_studies_list_screen.dart';
 import 'package:datasolids_mobile/features/pod/presentation/screens/imaging_study_detail_screen.dart';
 import 'package:datasolids_mobile/features/pod/presentation/screens/labs_list_screen.dart';
+import 'package:datasolids_mobile/features/pod/presentation/screens/medication_detail_screen.dart';
 import 'package:datasolids_mobile/features/pod/presentation/screens/medications_list_screen.dart';
 import 'package:datasolids_mobile/features/pod/presentation/screens/observation_detail_screen.dart';
 import 'package:datasolids_mobile/features/pod/presentation/screens/resource_detail_screen.dart';
@@ -106,6 +109,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               return const ImagingStudiesListScreen();
             case 'diagnostic_reports':
               return const DiagnosticReportsListScreen();
+            case 'conditions':
+              return const ConditionsListScreen();
             default:
               return _CategoryComingSoon(categoryKey: key);
           }
@@ -156,6 +161,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final id = state.pathParameters['id'] ?? '';
           return ImagingStudyDetailScreen(studyId: id);
+        },
+      ),
+      // Typed MedicationRequest detail.
+      GoRoute(
+        path: '/pod/clinical/medication-request/:id',
+        name: 'clinical_medication_request_detail',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return MedicationDetailScreen(medicationId: id);
+        },
+      ),
+      // Typed Condition detail.
+      GoRoute(
+        path: '/pod/clinical/condition/:id',
+        name: 'clinical_condition_detail',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return ConditionDetailScreen(conditionId: id);
         },
       ),
       // Feature routes — every new feature appends one GoRoute here.

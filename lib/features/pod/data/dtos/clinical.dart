@@ -522,6 +522,293 @@ class ImagingStudyPage {
   }
 }
 
+// ============================================================================
+// MedicationRequest
+// ============================================================================
+
+
+class MedicationRequestSummary {
+  const MedicationRequestSummary({
+    required this.id,
+    required this.title,
+    required this.status,
+    required this.intent,
+    this.doseQuantity,
+    this.doseUnit,
+    this.routeText,
+    this.authoredAt,
+    this.requesterName,
+  });
+
+  final String id;
+  final String title;
+  final String status;     // active | on-hold | completed | …
+  final String intent;
+  final String? doseQuantity;
+  final String? doseUnit;
+  final String? routeText;
+  final DateTime? authoredAt;
+  final String? requesterName;
+
+  bool get isActive => status.toLowerCase() == 'active';
+
+  factory MedicationRequestSummary.fromJson(Map<String, dynamic> j) =>
+      MedicationRequestSummary(
+        id: (j['id'] ?? '').toString(),
+        title: (j['title'] ?? '').toString(),
+        status: (j['status'] ?? '').toString(),
+        intent: (j['intent'] ?? '').toString(),
+        doseQuantity: j['dose_quantity']?.toString(),
+        doseUnit: j['dose_unit']?.toString(),
+        routeText: j['route_text']?.toString(),
+        authoredAt:
+            DateTime.tryParse((j['authored_at'] ?? '').toString())?.toLocal(),
+        requesterName: j['requester_name']?.toString(),
+      );
+}
+
+class MedicationRequestPage {
+  const MedicationRequestPage({
+    required this.total,
+    required this.offset,
+    required this.limit,
+    required this.hasMore,
+    required this.results,
+  });
+
+  final int total;
+  final int offset;
+  final int limit;
+  final bool hasMore;
+  final List<MedicationRequestSummary> results;
+
+  factory MedicationRequestPage.fromJson(Map<String, dynamic> json) {
+    final results = (json['results'] as List<dynamic>?) ?? const [];
+    return MedicationRequestPage(
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      offset: (json['offset'] as num?)?.toInt() ?? 0,
+      limit: (json['limit'] as num?)?.toInt() ?? 0,
+      hasMore: json['has_more'] as bool? ?? false,
+      results: results
+          .whereType<Map<String, dynamic>>()
+          .map(MedicationRequestSummary.fromJson)
+          .toList(),
+    );
+  }
+}
+
+class MedicationRequestDetail {
+  const MedicationRequestDetail({
+    required this.id,
+    required this.title,
+    required this.status,
+    required this.intent,
+    required this.medicationCode,
+    required this.dosageText,
+    required this.notes,
+    this.doseQuantity,
+    this.doseUnit,
+    this.routeText,
+    this.refillsAllowed,
+    this.quantityValue,
+    this.quantityUnit,
+    this.authoredAt,
+    this.requesterName,
+  });
+
+  final String id;
+  final String title;
+  final String status;
+  final String intent;
+  final String medicationCode;
+  final String dosageText;
+  final String notes;
+  final String? doseQuantity;
+  final String? doseUnit;
+  final String? routeText;
+  final int? refillsAllowed;
+  final String? quantityValue;
+  final String? quantityUnit;
+  final DateTime? authoredAt;
+  final String? requesterName;
+
+  factory MedicationRequestDetail.fromJson(Map<String, dynamic> j) =>
+      MedicationRequestDetail(
+        id: (j['id'] ?? '').toString(),
+        title: (j['title'] ?? '').toString(),
+        status: (j['status'] ?? '').toString(),
+        intent: (j['intent'] ?? '').toString(),
+        medicationCode: (j['medication_code'] ?? '').toString(),
+        dosageText: (j['dosage_text'] ?? '').toString(),
+        notes: (j['notes'] ?? '').toString(),
+        doseQuantity: j['dose_quantity']?.toString(),
+        doseUnit: j['dose_unit']?.toString(),
+        routeText: j['route_text']?.toString(),
+        refillsAllowed: (j['refills_allowed'] as num?)?.toInt(),
+        quantityValue: j['quantity_value']?.toString(),
+        quantityUnit: j['quantity_unit']?.toString(),
+        authoredAt:
+            DateTime.tryParse((j['authored_at'] ?? '').toString())?.toLocal(),
+        requesterName: j['requester_name']?.toString(),
+      );
+}
+
+
+// ============================================================================
+// Condition
+// ============================================================================
+
+
+class ConditionSummary {
+  const ConditionSummary({
+    required this.id,
+    required this.title,
+    required this.clinicalStatus,
+    required this.primaryCategory,
+    required this.severityCode,
+    this.onsetAt,
+    this.recordedAt,
+  });
+
+  final String id;
+  final String title;
+  final String clinicalStatus;    // active | resolved | inactive | …
+  final String primaryCategory;
+  final String severityCode;
+  final DateTime? onsetAt;
+  final DateTime? recordedAt;
+
+  bool get isActive => clinicalStatus.toLowerCase() == 'active';
+  bool get isResolved => clinicalStatus.toLowerCase() == 'resolved';
+
+  String get severity {
+    switch (severityCode.toLowerCase()) {
+      case 'mild':
+      case '255604002':       return 'info';
+      case 'moderate':
+      case '6736007':         return 'warning';
+      case 'severe':
+      case '24484000':        return 'danger';
+      default:                 return 'muted';
+    }
+  }
+
+  factory ConditionSummary.fromJson(Map<String, dynamic> j) =>
+      ConditionSummary(
+        id: (j['id'] ?? '').toString(),
+        title: (j['title'] ?? '').toString(),
+        clinicalStatus: (j['clinical_status'] ?? '').toString(),
+        primaryCategory: (j['primary_category'] ?? '').toString(),
+        severityCode: (j['severity_code'] ?? '').toString(),
+        onsetAt:
+            DateTime.tryParse((j['onset_at'] ?? '').toString())?.toLocal(),
+        recordedAt:
+            DateTime.tryParse((j['recorded_at'] ?? '').toString())?.toLocal(),
+      );
+}
+
+class ConditionPage {
+  const ConditionPage({
+    required this.total,
+    required this.offset,
+    required this.limit,
+    required this.hasMore,
+    required this.results,
+  });
+
+  final int total;
+  final int offset;
+  final int limit;
+  final bool hasMore;
+  final List<ConditionSummary> results;
+
+  factory ConditionPage.fromJson(Map<String, dynamic> json) {
+    final results = (json['results'] as List<dynamic>?) ?? const [];
+    return ConditionPage(
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      offset: (json['offset'] as num?)?.toInt() ?? 0,
+      limit: (json['limit'] as num?)?.toInt() ?? 0,
+      hasMore: json['has_more'] as bool? ?? false,
+      results: results
+          .whereType<Map<String, dynamic>>()
+          .map(ConditionSummary.fromJson)
+          .toList(),
+    );
+  }
+}
+
+class ConditionDetail {
+  const ConditionDetail({
+    required this.id,
+    required this.title,
+    required this.clinicalStatus,
+    required this.verificationStatus,
+    required this.primaryCategory,
+    required this.severityCode,
+    required this.severityText,
+    required this.codeSystem,
+    required this.codeValue,
+    required this.bodySiteText,
+    required this.notes,
+    this.onsetAt,
+    this.abatementAt,
+    this.recordedAt,
+  });
+
+  final String id;
+  final String title;
+  final String clinicalStatus;
+  final String verificationStatus;
+  final String primaryCategory;
+  final String severityCode;
+  final String severityText;
+  final String codeSystem;
+  final String codeValue;
+  final String bodySiteText;
+  final String notes;
+  final DateTime? onsetAt;
+  final DateTime? abatementAt;
+  final DateTime? recordedAt;
+
+  String get severity {
+    switch (severityCode.toLowerCase()) {
+      case 'mild':
+      case '255604002':       return 'info';
+      case 'moderate':
+      case '6736007':         return 'warning';
+      case 'severe':
+      case '24484000':        return 'danger';
+      default:                 return 'muted';
+    }
+  }
+
+  factory ConditionDetail.fromJson(Map<String, dynamic> j) => ConditionDetail(
+        id: (j['id'] ?? '').toString(),
+        title: (j['title'] ?? '').toString(),
+        clinicalStatus: (j['clinical_status'] ?? '').toString(),
+        verificationStatus: (j['verification_status'] ?? '').toString(),
+        primaryCategory: (j['primary_category'] ?? '').toString(),
+        severityCode: (j['severity_code'] ?? '').toString(),
+        severityText: (j['severity_text'] ?? '').toString(),
+        codeSystem: (j['code_system'] ?? '').toString(),
+        codeValue: (j['code_value'] ?? '').toString(),
+        bodySiteText: (j['body_site_text'] ?? '').toString(),
+        notes: (j['notes'] ?? '').toString(),
+        onsetAt:
+            DateTime.tryParse((j['onset_at'] ?? '').toString())?.toLocal(),
+        abatementAt:
+            DateTime.tryParse((j['abatement_at'] ?? '').toString())?.toLocal(),
+        recordedAt:
+            DateTime.tryParse((j['recorded_at'] ?? '').toString())?.toLocal(),
+      );
+}
+
+
+// ============================================================================
+// (Existing) ImagingStudyDetail follows below
+// ============================================================================
+
+
 class ImagingStudyDetail {
   const ImagingStudyDetail({
     required this.id,
