@@ -90,6 +90,9 @@ dependencies:
   # to open presigned S3 file URLs for PDF/HTML/PNG attachments.
   url_launcher: ^6.3.0
 
+  # QR code rendering for the MFA TOTP setup screen.
+  qr_flutter: ^4.1.0
+
 # ────────────────────────────────────────────────────────────────────────────
 # Dev dependencies — code generation, testing, linting
 # ────────────────────────────────────────────────────────────────────────────

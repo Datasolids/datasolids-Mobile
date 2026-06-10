@@ -119,7 +119,7 @@ class _ProfileDrawerState extends ConsumerState<ProfileDrawer> {
                   label: 'Security & MFA',
                   onTap: () {
                     Navigator.of(context).pop();
-                    _showComingSoon(context);
+                    context.push('/security');
                   },
                 ),
                 const SizedBox(height: 10),

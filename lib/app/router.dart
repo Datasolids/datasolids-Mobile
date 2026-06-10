@@ -1,6 +1,7 @@
 import 'package:datasolids_mobile/core/auth/auth_state.dart';
 import 'package:datasolids_mobile/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:datasolids_mobile/features/auth/presentation/screens/login_screen.dart';
+import 'package:datasolids_mobile/features/auth/presentation/screens/mfa_challenge_screen.dart';
 import 'package:datasolids_mobile/features/auth/presentation/screens/signup_screen.dart';
 import 'package:datasolids_mobile/features/connect/presentation/screens/connect_ehr_screen.dart';
 import 'package:datasolids_mobile/features/connect/presentation/screens/select_health_system_screen.dart';
@@ -20,6 +21,8 @@ import 'package:datasolids_mobile/features/pod/presentation/screens/observation_
 import 'package:datasolids_mobile/features/pod/presentation/screens/resource_detail_screen.dart';
 import 'package:datasolids_mobile/features/pod/presentation/screens/vitals_list_screen.dart';
 import 'package:datasolids_mobile/features/profile/presentation/screens/personal_profile_screen.dart';
+import 'package:datasolids_mobile/features/security/presentation/screens/mfa_setup_flow.dart';
+import 'package:datasolids_mobile/features/security/presentation/screens/security_home_screen.dart';
 import 'package:datasolids_mobile/features/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,8 +42,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final loggedIn = auth.isAuthenticated;
       final atSplash = state.matchedLocation == '/';
       // Paths that should be reachable when logged out.
-      const unauthOk = {'/login', '/signup', '/forgot-password'};
-      final onUnauthPath = unauthOk.contains(state.matchedLocation);
+      // /mfa-challenge — between password OK and tokens issued.
+      // /security/mfa-* — when login returned mfa_setup_required (past grace).
+      const unauthOk = {'/login', '/signup', '/forgot-password',
+                         '/mfa-challenge'};
+      final onUnauthPath = unauthOk.contains(state.matchedLocation)
+          || state.matchedLocation.startsWith('/security/mfa-');
 
       if (atSplash) return loggedIn ? '/home' : '/login';
       if (!loggedIn && !onUnauthPath) return '/login';
@@ -67,6 +74,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/forgot-password',
         name: 'forgot_password',
         builder: (_, __) => const ForgotPasswordScreen(),
+      ),
+      // MFA challenge during sign-in. `extra` carries the challenge token
+      // returned by /auth/login when mfa_required is true.
+      GoRoute(
+        path: '/mfa-challenge',
+        name: 'mfa_challenge',
+        builder: (context, state) {
+          final token = state.extra is String
+              ? state.extra as String
+              : '';
+          return MfaChallengeScreen(challengeToken: token);
+        },
       ),
       GoRoute(
         path: '/home',
@@ -181,6 +200,43 @@ final routerProvider = Provider<GoRouter>((ref) {
           return ConditionDetailScreen(conditionId: id);
         },
       ),
+      // Security & MFA
+      GoRoute(
+        path: '/security',
+        name: 'security_home',
+        builder: (_, __) => const SecurityHomeScreen(),
+      ),
+      GoRoute(
+        path: '/security/mfa-choose',
+        name: 'security_mfa_choose',
+        builder: (_, __) => const MfaMethodChoiceScreen(),
+      ),
+      GoRoute(
+        path: '/security/mfa-totp-qr',
+        name: 'security_mfa_totp_qr',
+        builder: (_, __) => const MfaTotpQrScreen(),
+      ),
+      GoRoute(
+        path: '/security/mfa-totp-verify',
+        name: 'security_mfa_totp_verify',
+        builder: (_, __) => const MfaTotpVerifyScreen(),
+      ),
+      GoRoute(
+        path: '/security/recovery-codes',
+        name: 'security_recovery_codes',
+        builder: (_, __) => const RecoveryCodesScreen(),
+      ),
+      GoRoute(
+        path: '/security/recovery-codes-after-setup',
+        name: 'security_recovery_codes_after_setup',
+        builder: (context, state) {
+          final codes = state.extra is List<String>
+              ? state.extra as List<String>
+              : null;
+          return RecoveryCodesScreen(initialCodes: codes);
+        },
+      ),
+
       // Feature routes — every new feature appends one GoRoute here.
       // Resist building a giant tree-of-routes file; if this grows past
       // ~30 routes split per-feature into router fragments.
