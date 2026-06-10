@@ -21,7 +21,10 @@ import 'package:datasolids_mobile/features/pod/presentation/screens/observation_
 import 'package:datasolids_mobile/features/pod/presentation/screens/resource_detail_screen.dart';
 import 'package:datasolids_mobile/features/pod/presentation/screens/vitals_list_screen.dart';
 import 'package:datasolids_mobile/features/profile/presentation/screens/personal_profile_screen.dart';
+import 'package:datasolids_mobile/features/security/presentation/screens/active_sessions_screen.dart';
+import 'package:datasolids_mobile/features/security/presentation/screens/change_password_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/mfa_setup_flow.dart';
+import 'package:datasolids_mobile/features/security/presentation/screens/security_activity_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/security_home_screen.dart';
 import 'package:datasolids_mobile/features/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
@@ -225,6 +228,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/security/recovery-codes',
         name: 'security_recovery_codes',
         builder: (_, __) => const RecoveryCodesScreen(),
+      ),
+      GoRoute(
+        path: '/security/sessions',
+        name: 'security_sessions',
+        builder: (_, __) => const ActiveSessionsScreen(),
+      ),
+      GoRoute(
+        path: '/security/activity',
+        name: 'security_activity',
+        builder: (_, __) => const SecurityActivityScreen(),
+      ),
+      GoRoute(
+        path: '/security/password',
+        name: 'security_change_password',
+        builder: (_, __) => const ChangePasswordScreen(),
       ),
       GoRoute(
         path: '/security/recovery-codes-after-setup',
