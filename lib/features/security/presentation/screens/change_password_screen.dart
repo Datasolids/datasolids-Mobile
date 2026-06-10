@@ -377,63 +377,113 @@ class _PasswordField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasError = (errorText ?? '').isNotEmpty;
+    final radius = BorderRadius.circular(14);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: (errorText ?? '').isEmpty
-                  ? AppColors.border.withOpacity(0.6)
-                  : const Color(0xFFE0524F),
-              width: 1,
+        TextField(
+          controller: controller,
+          obscureText: hidden,
+          autocorrect: false,
+          enableSuggestions: false,
+          onChanged: onChanged,
+          // Force the cursor + selection to be teal/navy. Otherwise any
+          // upstream Material theme dictates them.
+          cursorColor: AppColors.teal600,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.navy900,
+            letterSpacing: hidden ? 4 : 0,
+          ),
+          decoration: InputDecoration(
+            // Explicitly white. `filled: true` is required for fillColor
+            // to actually paint — without it the widget inherits the
+            // ambient theme's input background (which is what was rendering
+            // dark).
+            filled: true,
+            fillColor: Colors.white,
+            isDense: false,
+            hintText: '••••••••',
+            hintStyle: TextStyle(
+              color: AppColors.textSubtle.withOpacity(0.6),
+              fontSize: 16,
+              letterSpacing: 4,
+              fontWeight: FontWeight.w600,
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(16, 18, 8, 18),
+            border: OutlineInputBorder(
+              borderRadius: radius,
+              borderSide: BorderSide(
+                color: AppColors.border.withOpacity(0.6),
+                width: 1,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: radius,
+              borderSide: BorderSide(
+                color: hasError
+                    ? const Color(0xFFE0524F)
+                    : AppColors.border.withOpacity(0.6),
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: radius,
+              borderSide: BorderSide(
+                color: hasError
+                    ? const Color(0xFFE0524F)
+                    : AppColors.teal600,
+                width: 1.5,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: radius,
+              borderSide: const BorderSide(
+                color: Color(0xFFE0524F),
+                width: 1,
+              ),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: radius,
+              borderSide: const BorderSide(
+                color: Color(0xFFE0524F),
+                width: 1.5,
+              ),
+            ),
+            suffixIcon: IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: 44, minHeight: 44,
+              ),
+              icon: Icon(
+                hidden
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                size: 20,
+                color: AppColors.textSubtle,
+              ),
+              onPressed: onToggle,
+              tooltip: hidden ? 'Show' : 'Hide',
+            ),
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 44, minHeight: 44,
             ),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  obscureText: hidden,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  onChanged: onChanged,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: '••••••••',
-                    isCollapsed: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: Icon(
-                  hidden ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                  size: 20,
-                  color: AppColors.textSubtle,
-                ),
-                onPressed: onToggle,
-                tooltip: hidden ? 'Show' : 'Hide',
-              ),
-            ],
-          ),
         ),
-        if ((errorText ?? '').isNotEmpty) ...[
+        if (hasError) ...[
           const SizedBox(height: 6),
-          Text(
-            errorText!,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFFA42D2D),
-              fontWeight: FontWeight.w600,
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Text(
+              errorText!,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFFA42D2D),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -476,16 +526,41 @@ class _RequirementGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 10,
-      children: [
-        for (final r in rows)
-          SizedBox(
-            width: (MediaQuery.of(context).size.width - 52) / 2,
-            child: _RequirementChip(label: r.$1, met: r.$2),
+    // Two-column grid wrapped in a single white card so it matches the
+    // design's pale-cream-tinted block.
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBF5EB),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          // Row 1: 8+ characters | One number
+          Row(
+            children: [
+              Expanded(child: _RequirementChip(
+                label: rows[0].$1, met: rows[0].$2,
+              )),
+              Expanded(child: _RequirementChip(
+                label: rows[1].$1, met: rows[1].$2,
+              )),
+            ],
           ),
-      ],
+          const SizedBox(height: 10),
+          // Row 2: One symbol | Case mix
+          Row(
+            children: [
+              Expanded(child: _RequirementChip(
+                label: rows[2].$1, met: rows[2].$2,
+              )),
+              Expanded(child: _RequirementChip(
+                label: rows[3].$1, met: rows[3].$2,
+              )),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -502,16 +577,18 @@ class _RequirementChip extends StatelessWidget {
         Icon(
           met ? Icons.check_circle : Icons.radio_button_unchecked,
           size: 16,
-          color: met ? const Color(0xFF1B7F3A) : AppColors.textSubtle,
+          color: met ? AppColors.teal600 : AppColors.textSubtle,
         ),
-        const SizedBox(width: 6),
-        Expanded(
+        const SizedBox(width: 8),
+        Flexible(
           child: Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: met ? AppColors.navy900 : AppColors.textMuted,
+              color: met ? AppColors.teal600 : AppColors.textMuted,
             ),
           ),
         ),
