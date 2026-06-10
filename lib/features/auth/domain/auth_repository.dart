@@ -39,6 +39,34 @@ class AuthRepository {
     }
   }
 
+  /// Verify the 6-digit MFA code (or recovery code) during login.
+  /// On success this saves the access + refresh tokens so the user is
+  /// considered logged in immediately afterwards.
+  Future<Either<AppFailure, AuthResponse>> verifyMfaChallenge({
+    required String challengeToken,
+    String? code,
+    String? backupCode,
+  }) async {
+    try {
+      final resp = await _api.verifyMfaChallenge(
+        challengeToken: challengeToken,
+        code: code,
+        backupCode: backupCode,
+      );
+      if (resp.access.isNotEmpty) {
+        await _tokens.saveTokens(access: resp.access, refresh: resp.refresh);
+      }
+      return Right(resp);
+    } on DioException catch (e) {
+      final failure = e.error is AppFailure
+          ? e.error! as AppFailure
+          : AppFailure.fromDio(e);
+      return Left(failure);
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
+    }
+  }
+
   Future<Either<AppFailure, Unit>> signOut() async {
     await _tokens.signOut();
     return const Right(unit);

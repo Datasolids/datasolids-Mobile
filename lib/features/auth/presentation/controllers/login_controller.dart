@@ -9,20 +9,28 @@ class LoginState {
     this.isSubmitting = false,
     this.errorMessage,
     this.mfaRequired = false,
+    this.mfaSetupRequired = false,
+    this.mfaChallengeToken,
   });
   final bool isSubmitting;
   final String? errorMessage;
   final bool mfaRequired;
+  final bool mfaSetupRequired;
+  final String? mfaChallengeToken;
 
   LoginState copyWith({
     bool? isSubmitting,
     String? errorMessage,
     bool? mfaRequired,
+    bool? mfaSetupRequired,
+    String? mfaChallengeToken,
   }) {
     return LoginState(
       isSubmitting: isSubmitting ?? this.isSubmitting,
       errorMessage: errorMessage,
       mfaRequired: mfaRequired ?? this.mfaRequired,
+      mfaSetupRequired: mfaSetupRequired ?? this.mfaSetupRequired,
+      mfaChallengeToken: mfaChallengeToken ?? this.mfaChallengeToken,
     );
   }
 }
@@ -42,6 +50,8 @@ class LoginController extends StateNotifier<LoginState> {
       (resp) => state = state.copyWith(
         isSubmitting: false,
         mfaRequired: resp.mfaRequired,
+        mfaSetupRequired: resp.mfaSetupRequired,
+        mfaChallengeToken: resp.mfaChallengeToken,
       ),
     );
   }

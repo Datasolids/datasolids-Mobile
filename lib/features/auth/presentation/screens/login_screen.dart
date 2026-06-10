@@ -66,6 +66,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           email: _emailCtrl.text,
           password: _passwordCtrl.text,
         );
+
+    // Route based on the post-submit state. The controller has finished
+    // by the time we get here.
+    if (!mounted) return;
+    final s = ref.read(loginControllerProvider);
+    if (s.errorMessage != null) return;
+    if (s.mfaRequired && (s.mfaChallengeToken ?? '').isNotEmpty) {
+      context.push('/mfa-challenge', extra: s.mfaChallengeToken);
+      return;
+    }
+    if (s.mfaSetupRequired && (s.mfaChallengeToken ?? '').isNotEmpty) {
+      // Past grace — force MFA setup. The Security home will render the
+      // urgent red banner; the user can't dismiss it.
+      context.go('/security/mfa-choose');
+      return;
+    }
+    // Normal success path is handled by authStateProvider in the router
+    // redirect (saving the access token flips it).
   }
 
   @override
