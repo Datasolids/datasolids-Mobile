@@ -1,10 +1,6 @@
-// MFA challenge during sign-in.
-//
-// Reached from LoginScreen when the API returns mfa_required + a
-// short-lived challenge_token. Submits the 6-digit TOTP code (or a
-// recovery code) to /auth/mfa/challenge/. On success, the access +
-// refresh tokens land in TokenManager and the router redirect flips
-// to /home.
+// MFA challenge during sign-in. Matches "Auth: MFA Challenge" design —
+// cream background, small teal shield icon, 6-cell OTP, "Use a recovery
+// code instead" toggle, amber "Having trouble?" info card, Continue CTA.
 
 import 'package:datasolids_mobile/core/theme/app_colors.dart';
 import 'package:datasolids_mobile/features/auth/domain/auth_repository.dart';
@@ -16,7 +12,6 @@ import 'package:go_router/go_router.dart';
 
 class MfaChallengeScreen extends ConsumerStatefulWidget {
   const MfaChallengeScreen({super.key, required this.challengeToken});
-
   final String challengeToken;
 
   @override
@@ -44,19 +39,17 @@ class _MfaChallengeScreenState extends ConsumerState<MfaChallengeScreen> {
     super.dispose();
   }
 
+  int get _expectedLength => _useRecoveryCode ? 11 : 6;
+
   Future<void> _verify() async {
     final code = _controller.text.trim();
-    // TOTP = 6 digits, recovery code = formatted hex like ABCDE-FGHIJ.
-    if (_useRecoveryCode) {
-      if (code.length < 8) {
-        setState(() => _error = 'Recovery codes are 11 characters');
-        return;
-      }
-    } else {
-      if (code.length != 6) {
-        setState(() => _error = 'Enter the 6-digit code from your authenticator');
-        return;
-      }
+    if (!_useRecoveryCode && code.length != 6) {
+      setState(() => _error = "Enter the 6-digit code from your authenticator");
+      return;
+    }
+    if (_useRecoveryCode && code.length < 8) {
+      setState(() => _error = "Recovery codes are 11 characters");
+      return;
     }
     setState(() {
       _isVerifying = true;
@@ -68,7 +61,6 @@ class _MfaChallengeScreenState extends ConsumerState<MfaChallengeScreen> {
           code: _useRecoveryCode ? null : code,
           backupCode: _useRecoveryCode ? code : null,
         );
-
     if (!mounted) return;
     result.match(
       (failure) {
@@ -77,16 +69,11 @@ class _MfaChallengeScreenState extends ConsumerState<MfaChallengeScreen> {
           _error = "That code didn't work — try again";
           _controller.clear();
         });
-        // Re-focus the input so the user can type immediately.
         WidgetsBinding.instance
             .addPostFrameCallback((_) => _focus.requestFocus());
       },
       (resp) {
         if (resp.access.isNotEmpty) {
-          // TokenManager already saved the tokens inside verifyMfaChallenge;
-          // the router redirect will route to /home automatically when it
-          // sees the new authState. Pop the challenge screen so the stack
-          // is clean.
           context.go('/home');
         } else {
           setState(() {
@@ -100,185 +87,216 @@ class _MfaChallengeScreenState extends ConsumerState<MfaChallengeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final fieldLen = _useRecoveryCode ? 11 : 6;
     return Scaffold(
-      backgroundColor: const Color(0xFF1A365D),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0F2742), Color(0xFF1A365D), Color(0xFF0F2742)],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Back button
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: InkResponse(
-                    onTap: () => Navigator.of(context).pop(),
-                    radius: 22,
-                    child: Container(
-                      width: 40, height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.10),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.arrow_back,
-                          color: Colors.white, size: 20),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 36),
-
-                // Lock icon
-                Center(
+      backgroundColor: const Color(0xFFFAF7F2),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Back button (white rounded square)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: InkResponse(
+                  onTap: () => Navigator.of(context).pop(),
+                  radius: 26,
                   child: Container(
-                    width: 64, height: 64,
+                    width: 44, height: 44,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.14),
-                      ),
-                    ),
-                    child: Icon(Icons.shield_outlined,
-                        color: AppColors.teal500, size: 30),
-                  ),
-                ),
-                const SizedBox(height: 22),
-
-                Center(
-                  child: Text(
-                    "Confirm it's you",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
                       color: Colors.white,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    _useRecoveryCode
-                        ? 'Enter one of your recovery codes.'
-                        : 'Enter the 6-digit code from your authenticator app.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withOpacity(0.75),
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                if (_useRecoveryCode)
-                  _RecoveryCodeInput(
-                    controller: _controller,
-                    focusNode: _focus,
-                    onChanged: (_) => setState(() {}),
-                  )
-                else
-                  _OtpInput(
-                    controller: _controller,
-                    focusNode: _focus,
-                    hasError: _error != null,
-                    onChanged: (_) => setState(() {}),
-                  ),
-
-                if (_error != null) ...[
-                  const SizedBox(height: 14),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline,
-                          size: 16, color: Color(0xFFFCA5A5)),
-                      const SizedBox(width: 6),
-                      Text(
-                        _error!,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFFFCA5A5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-
-                const SizedBox(height: 26),
-
-                SizedBox(
-                  height: 52,
-                  child: FilledButton(
-                    onPressed: _isVerifying
-                        || _controller.text.length < (fieldLen)
-                        ? null
-                        : _verify,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.teal600,
-                      disabledBackgroundColor:
-                          AppColors.teal600.withOpacity(0.45),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.border.withOpacity(0.6),
                       ),
                     ),
-                    child: _isVerifying
-                        ? const SizedBox(
-                            height: 18, width: 18,
-                            child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'Sign in',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
+                    child: Icon(Icons.arrow_back,
+                        color: AppColors.navy900, size: 20),
                   ),
                 ),
+              ),
+              const SizedBox(height: 28),
 
-                const SizedBox(height: 18),
+              // Teal shield icon
+              Center(
+                child: Container(
+                  width: 64, height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.teal600,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(Icons.shield_outlined,
+                      color: Colors.white, size: 32),
+                ),
+              ),
+              const SizedBox(height: 22),
 
-                Center(
-                  child: TextButton(
-                    onPressed: _isVerifying
-                        ? null
-                        : () => setState(() {
-                              _useRecoveryCode = !_useRecoveryCode;
-                              _controller.clear();
-                              _error = null;
-                              WidgetsBinding.instance.addPostFrameCallback(
-                                (_) => _focus.requestFocus(),
-                              );
-                            }),
-                    child: Text(
-                      _useRecoveryCode
-                          ? 'Use your authenticator code instead'
-                          : 'Use a recovery code instead',
-                      style: TextStyle(
+              Text(
+                "Confirm it's you",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.navy900,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _useRecoveryCode
+                    ? 'Enter one of your recovery codes.'
+                    : 'Enter the 6-digit code from your authenticator app to sign in to your pod.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textMuted,
+                  height: 1.4,
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              if (_useRecoveryCode)
+                _RecoveryCodeInput(
+                  controller: _controller,
+                  focusNode: _focus,
+                  onChanged: (_) => setState(() {}),
+                )
+              else
+                _OtpRow(
+                  controller: _controller,
+                  focusNode: _focus,
+                  hasError: _error != null,
+                  onChanged: (_) => setState(() {}),
+                ),
+
+              if (_error != null) ...[
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        size: 16, color: Color(0xFFA42D2D)),
+                    const SizedBox(width: 6),
+                    Text(
+                      _error!,
+                      style: const TextStyle(
                         fontSize: 13,
-                        color: AppColors.teal500,
-                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFA42D2D),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ],
-            ),
+
+              const SizedBox(height: 22),
+
+              // Recovery-code toggle link
+              Center(
+                child: TextButton(
+                  onPressed: _isVerifying
+                      ? null
+                      : () => setState(() {
+                            _useRecoveryCode = !_useRecoveryCode;
+                            _controller.clear();
+                            _error = null;
+                            WidgetsBinding.instance.addPostFrameCallback(
+                              (_) => _focus.requestFocus(),
+                            );
+                          }),
+                  child: Text(
+                    _useRecoveryCode
+                        ? 'Use your authenticator code instead →'
+                        : 'Use a recovery code instead →',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.teal600,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Amber "Having trouble?" info card
+              Container(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7E0),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        size: 18, color: Color(0xFFA15C00)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFA15C00),
+                            height: 1.45,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          children: [
+                            const TextSpan(
+                              text: "Having trouble? If you've lost your device and recovery codes, please ",
+                            ),
+                            TextSpan(
+                              text: "contact support",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                            const TextSpan(text: " to verify your identity."),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 26),
+
+              SizedBox(
+                height: 52,
+                child: FilledButton(
+                  onPressed: _isVerifying
+                      || _controller.text.length < _expectedLength
+                      ? null
+                      : _verify,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.teal600,
+                    disabledBackgroundColor:
+                        AppColors.teal600.withOpacity(0.45),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: _isVerifying
+                      ? const SizedBox(
+                          height: 18, width: 18,
+                          child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Continue',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -288,11 +306,12 @@ class _MfaChallengeScreenState extends ConsumerState<MfaChallengeScreen> {
 
 
 // ─────────────────────────────────────────────────────────────────
-// 6-cell OTP input — looks like the design (6 boxes, big numerals)
+// 6-cell OTP row — matches the design.
+// Filled cells get a 2px teal border; empty cells get a 1px gray border.
 // ─────────────────────────────────────────────────────────────────
 
-class _OtpInput extends StatelessWidget {
-  const _OtpInput({
+class _OtpRow extends StatelessWidget {
+  const _OtpRow({
     required this.controller,
     required this.focusNode,
     required this.hasError,
@@ -313,6 +332,7 @@ class _OtpInput extends StatelessWidget {
             for (var i = 0; i < 6; i++) ...[
               _Cell(
                 value: controller.text.length > i ? controller.text[i] : '',
+                filled: controller.text.length > i,
                 focused: controller.text.length == i,
                 hasError: hasError,
               ),
@@ -348,37 +368,37 @@ class _OtpInput extends StatelessWidget {
 class _Cell extends StatelessWidget {
   const _Cell({
     required this.value,
+    required this.filled,
     required this.focused,
     required this.hasError,
   });
   final String value;
+  final bool filled;
   final bool focused;
   final bool hasError;
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = hasError
-        ? const Color(0xFFFCA5A5)
-        : focused
-            ? AppColors.teal500
-            : Colors.white.withOpacity(0.20);
+    final teal = hasError ? const Color(0xFFE0524F) : AppColors.teal600;
+    final gray = AppColors.border;
+
     return Container(
       width: 48, height: 60,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: borderColor,
-          width: focused ? 2 : 1,
+          color: (filled || focused) ? teal : gray,
+          width: (filled || focused) ? 2 : 1,
         ),
       ),
       alignment: Alignment.center,
       child: Text(
         value,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 26,
           fontWeight: FontWeight.w800,
-          color: Colors.white,
+          color: AppColors.navy900,
         ),
       ),
     );
@@ -387,8 +407,7 @@ class _Cell extends StatelessWidget {
 
 
 // ─────────────────────────────────────────────────────────────────
-// Recovery code input — single text field, monospace, 11 chars
-// (10 hex + 1 dash, e.g. ABCDE-FGHIJ)
+// Recovery code input — single text field with monospaced font.
 // ─────────────────────────────────────────────────────────────────
 
 class _RecoveryCodeInput extends StatelessWidget {
@@ -403,38 +422,49 @@ class _RecoveryCodeInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.20)),
+    return TextField(
+      controller: controller,
+      focusNode: focusNode,
+      autocorrect: false,
+      textCapitalization: TextCapitalization.characters,
+      cursorColor: AppColors.teal600,
+      style: TextStyle(
+        fontFamily: 'monospace',
+        fontSize: 17,
+        color: AppColors.navy900,
+        letterSpacing: 2,
+        fontWeight: FontWeight.w700,
       ),
-      child: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        autocorrect: false,
-        textCapitalization: TextCapitalization.characters,
-        style: const TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 18,
-          color: Colors.white,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'[0-9A-Fa-f-]')),
+        LengthLimitingTextInputFormatter(11),
+      ],
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        hintText: 'ABCDE-FGHIJ',
+        hintStyle: TextStyle(
+          color: AppColors.textSubtle.withOpacity(0.6),
           letterSpacing: 2,
+          fontFamily: 'monospace',
           fontWeight: FontWeight.w700,
         ),
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'[0-9A-Fa-f-]')),
-          LengthLimitingTextInputFormatter(11),
-        ],
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          hintText: 'ABCDE-FGHIJ',
-          hintStyle: TextStyle(color: Colors.white24, letterSpacing: 2),
-          isCollapsed: true,
-          contentPadding: EdgeInsets.zero,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: AppColors.border.withOpacity(0.6)),
         ),
-        onChanged: onChanged,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: AppColors.border.withOpacity(0.6)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: AppColors.teal600, width: 1.5),
+        ),
       ),
+      onChanged: onChanged,
     );
   }
 }

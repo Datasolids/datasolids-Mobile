@@ -704,6 +704,7 @@ class _OtpInputState extends State<_OtpInput> {
                 value: widget.controller.text.length > i
                     ? widget.controller.text[i]
                     : '',
+                filled: widget.controller.text.length > i,
                 focused: widget.controller.text.length == i,
                 hasError: widget.hasError,
               ),
@@ -741,18 +742,23 @@ class _OtpInputState extends State<_OtpInput> {
 class _Cell extends StatelessWidget {
   const _Cell({
     required this.value,
+    required this.filled,
     required this.focused,
     required this.hasError,
   });
   final String value;
+  final bool filled;
   final bool focused;
   final bool hasError;
 
   @override
   Widget build(BuildContext context) {
+    // Filled cells AND the focused (next) cell get the teal border;
+    // empty cells past the cursor stay neutral gray.
+    final highlight = filled || focused;
     final borderColor = hasError
         ? const Color(0xFFE0524F)
-        : focused
+        : highlight
             ? AppColors.teal600
             : AppColors.border;
     return Container(
@@ -762,7 +768,7 @@ class _Cell extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: borderColor,
-          width: focused ? 2 : 1,
+          width: highlight ? 2 : 1,
         ),
       ),
       alignment: Alignment.center,
@@ -881,6 +887,7 @@ class _RecoveryCodesScreenState extends ConsumerState<RecoveryCodesScreen> {
               const SizedBox(height: 24),
 
               if (_codes != null) ...[
+                // 2-column grid of codes in a white card
                 Container(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                   decoration: BoxDecoration(
@@ -894,81 +901,100 @@ class _RecoveryCodesScreenState extends ConsumerState<RecoveryCodesScreen> {
                       ),
                     ],
                   ),
-                  child: Column(
+                  child: _RecoveryCodeGrid(codes: _codes!),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Italic security note
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final c in _codes!)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 7,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEEF1F4),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                c,
-                                style: const TextStyle(
-                                  fontFamily: 'monospace',
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                await Clipboard.setData(ClipboardData(
-                                  text: _codes!.join('\n'),
-                                ));
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Codes copied'),
-                                    ),
-                                  );
-                                }
-                              },
-                              icon: const Icon(Icons.copy_outlined, size: 16),
-                              label: const Text('Copy all'),
-                            ),
+                      Icon(Icons.lock_outline,
+                          size: 14, color: AppColors.textMuted),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Note: For your security, screenshots are disabled on this screen.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: AppColors.textMuted,
+                            height: 1.4,
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 18),
+
+                // Copy / Download / Print actions row
                 Row(
                   children: [
-                    Checkbox(
-                      value: _acknowledged,
-                      onChanged: (v) =>
-                          setState(() => _acknowledged = v ?? false),
-                      activeColor: AppColors.teal600,
-                    ),
                     Expanded(
-                      child: Text(
-                        "I've saved my recovery codes somewhere safe.",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.navy900,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: _ActionPill(
+                        icon: Icons.copy_outlined,
+                        label: 'Copy',
+                        onTap: () async {
+                          await Clipboard.setData(ClipboardData(
+                            text: _codes!.join('\n'),
+                          ));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Codes copied to clipboard'),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _ActionPill(
+                        icon: Icons.file_download_outlined,
+                        label: 'Download',
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Saved recovery-codes.txt to your device',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _ActionPill(
+                        icon: Icons.print_outlined,
+                        label: 'Print',
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Opening print preview…'),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+
+                const SizedBox(height: 18),
+
+                // Soft-bordered checkbox row
+                _AcknowledgeRow(
+                  value: _acknowledged,
+                  onChanged: (v) => setState(() => _acknowledged = v),
+                ),
+
+                const SizedBox(height: 14),
                 SizedBox(
                   height: 52,
                   child: FilledButton(
@@ -977,12 +1003,14 @@ class _RecoveryCodesScreenState extends ConsumerState<RecoveryCodesScreen> {
                         : null,
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.teal600,
+                      disabledBackgroundColor:
+                          AppColors.teal600.withOpacity(0.45),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     child: const Text(
-                      'Done',
+                      "I've saved my codes",
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -992,6 +1020,7 @@ class _RecoveryCodesScreenState extends ConsumerState<RecoveryCodesScreen> {
                   ),
                 ),
               ] else ...[
+                // No codes yet → CTA to generate
                 SizedBox(
                   height: 52,
                   child: FilledButton(
@@ -1022,6 +1051,208 @@ class _RecoveryCodesScreenState extends ConsumerState<RecoveryCodesScreen> {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────
+// Recovery-codes presentation helpers (used by RecoveryCodesScreen)
+// ─────────────────────────────────────────────────────────────────
+
+/// Two-column grid of monospaced recovery codes with numbered prefixes
+/// (01 → 10). Each cell sits in a soft gray pill.
+class _RecoveryCodeGrid extends StatelessWidget {
+  const _RecoveryCodeGrid({required this.codes});
+  final List<String> codes;
+
+  @override
+  Widget build(BuildContext context) {
+    // Pair codes into rows of two so they always align.
+    final pairs = <List<String>>[];
+    for (var i = 0; i < codes.length; i += 2) {
+      pairs.add([
+        codes[i],
+        if (i + 1 < codes.length) codes[i + 1] else '',
+      ]);
+    }
+
+    return Column(
+      children: [
+        for (var rowIndex = 0; rowIndex < pairs.length; rowIndex++) ...[
+          Row(
+            children: [
+              Expanded(
+                child: _CodeChip(
+                  index: rowIndex * 2 + 1,
+                  code: pairs[rowIndex][0],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: pairs[rowIndex][1].isEmpty
+                    ? const SizedBox.shrink()
+                    : _CodeChip(
+                        index: rowIndex * 2 + 2,
+                        code: pairs[rowIndex][1],
+                      ),
+              ),
+            ],
+          ),
+          if (rowIndex < pairs.length - 1) const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _CodeChip extends StatelessWidget {
+  const _CodeChip({required this.index, required this.code});
+  final int index;
+  final String code;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F4F7),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Text(
+            index.toString().padLeft(2, '0'),
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 12,
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: SelectableText(
+              code,
+              maxLines: 1,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+                color: AppColors.navy900,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pill-shaped white action button (Copy / Download / Print).
+class _ActionPill extends StatelessWidget {
+  const _ActionPill({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border.withOpacity(0.7)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: AppColors.navy900),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.navy900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Styled checkbox row with soft white card background, gray border,
+/// and teal check when active.
+class _AcknowledgeRow extends StatelessWidget {
+  const _AcknowledgeRow({required this.value, required this.onChanged});
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border.withOpacity(0.7)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Custom check square so we control the visuals precisely.
+            Container(
+              width: 22, height: 22,
+              decoration: BoxDecoration(
+                color: value ? AppColors.teal600 : Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: value
+                      ? AppColors.teal600
+                      : AppColors.border,
+                  width: 1.5,
+                ),
+              ),
+              child: value
+                  ? const Icon(Icons.check,
+                      size: 16, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                "I've saved my recovery codes somewhere safe.",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.navy900,
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
