@@ -46,17 +46,32 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final loggedIn = auth.isAuthenticated;
       final atSplash = state.matchedLocation == '/';
-      // Paths that should be reachable when logged out.
-      // /mfa-challenge — between password OK and tokens issued.
-      // /security/mfa-* — when login returned mfa_setup_required (past grace).
-      const unauthOk = {'/login', '/signup', '/forgot-password',
-                         '/mfa-challenge'};
-      final onUnauthPath = unauthOk.contains(state.matchedLocation)
-          || state.matchedLocation.startsWith('/security/mfa-');
+      // Paths reachable when logged out. Two groups:
+      //   • Auth-entry paths (login/signup/forgot/mfa-challenge) — logged-in
+      //     users on these get bounced to /home so they can't see a stale
+      //     login form.
+      //   • MFA setup paths (/security/mfa-choose, /mfa-totp-qr, /mfa-totp-verify)
+      //     — reachable both when logged out (forced setup after grace) AND
+      //     when logged in (turning on MFA from Settings), so we DON'T bounce
+      //     logged-in users away.
+      //   • /security/mfa-status is the logged-in-only status view.
+      const authEntryPaths = {
+        '/login', '/signup', '/forgot-password', '/mfa-challenge',
+      };
+      const mfaSetupPaths = {
+        '/security/mfa-choose',
+        '/security/mfa-totp-qr',
+        '/security/mfa-totp-verify',
+      };
+      final loc = state.matchedLocation;
+      final onAuthEntry = authEntryPaths.contains(loc);
+      final onMfaSetup = mfaSetupPaths.contains(loc);
 
       if (atSplash) return loggedIn ? '/home' : '/login';
-      if (!loggedIn && !onUnauthPath) return '/login';
-      if (loggedIn && onUnauthPath) return '/home';
+      // Unauthenticated users may only see auth-entry paths and MFA setup.
+      if (!loggedIn && !onAuthEntry && !onMfaSetup) return '/login';
+      // Authenticated users shouldn't sit on auth-entry pages.
+      if (loggedIn && onAuthEntry) return '/home';
       return null;
     },
     routes: [
