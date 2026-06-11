@@ -8,6 +8,7 @@ import 'package:datasolids_mobile/features/security/data/security_api.dart';
 import 'package:datasolids_mobile/features/security/presentation/controllers/security_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 
 class ActiveSessionsScreen extends ConsumerWidget {
@@ -188,7 +189,16 @@ class _SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => context.push(
+          '/security/sessions/detail',
+          extra: session,
+        ),
+        child: Ink(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -249,9 +259,15 @@ class _SessionCard extends StatelessWidget {
             ),
           ),
           if (session.isCurrent) _ThisDevicePill(),
+          const SizedBox(width: 4),
+          if (!session.isCurrent)
+            Icon(Icons.chevron_right,
+                size: 18, color: AppColors.textSubtle),
         ],
       ),
-    );
+    ),  // Ink
+      ),  // InkWell
+    );  // Material
   }
 
   static IconData _iconFor(String kind) {

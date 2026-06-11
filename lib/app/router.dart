@@ -26,6 +26,8 @@ import 'package:datasolids_mobile/features/security/presentation/screens/change_
 import 'package:datasolids_mobile/features/security/presentation/screens/mfa_setup_flow.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/mfa_status_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/delete_account_screen.dart';
+import 'package:datasolids_mobile/features/security/data/dtos/security.dart';
+import 'package:datasolids_mobile/features/security/presentation/screens/session_detail_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/security_activity_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/security_home_screen.dart';
 import 'package:datasolids_mobile/features/splash/splash_screen.dart';
@@ -262,6 +264,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/security/sessions',
         name: 'security_sessions',
         builder: (_, __) => const ActiveSessionsScreen(),
+      ),
+      GoRoute(
+        path: '/security/sessions/detail',
+        name: 'security_session_detail',
+        builder: (context, state) {
+          final session = state.extra is LoginSessionItem
+              ? state.extra as LoginSessionItem
+              : null;
+          return SessionDetailScreen(session: session);
+        },
       ),
       GoRoute(
         path: '/security/activity',
