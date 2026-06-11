@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:datasolids_mobile/core/auth/auth_state.dart';
 import 'package:datasolids_mobile/core/config/env.dart';
 import 'package:datasolids_mobile/core/logging/logger.dart';
 import 'package:datasolids_mobile/core/storage/secure_storage.dart';
+import 'package:datasolids_mobile/features/notifications/push/push_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -37,6 +40,19 @@ class TokenManager {
     await _storage.writeAccessToken(access);
     await _storage.writeRefreshToken(refresh);
     _ref.setAuthenticated(value: true);
+    // Initialize push (no-op if Firebase isn't configured) and
+    // re-register the FCM token so the new user owns it.
+    unawaited(_pushInitAndRegister());
+  }
+
+  Future<void> _pushInitAndRegister() async {
+    try {
+      final push = _ref.read(pushNotificationServiceProvider);
+      await push.initialize();
+      await push.reregisterAfterLogin();
+    } catch (e) {
+      appLogger.w('Push setup skipped: $e');
+    }
   }
 
   Future<bool> refresh() async {
@@ -103,6 +119,10 @@ class TokenManager {
     final ok = await refresh();
     if (ok) {
       _ref.setAuthenticated(value: true);
+      // Returning user with a still-valid refresh token — initialize
+      // push so any messages that arrived while they were away can
+      // route on tap, and confirm the FCM token is still registered.
+      unawaited(_pushInitAndRegister());
     } else {
       // Refresh token is invalid (expired, revoked, account disabled,
       // password changed). Wipe so the next launch doesn't retry it.
@@ -111,6 +131,7 @@ class TokenManager {
     }
   }
 }
+
 
 final tokenManagerProvider = Provider<TokenManager>((ref) {
   return TokenManager(ref);

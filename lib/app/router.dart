@@ -30,6 +30,8 @@ import 'package:datasolids_mobile/features/security/data/dtos/security.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/session_detail_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/security_activity_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/security_home_screen.dart';
+import 'package:datasolids_mobile/features/notifications/presentation/screens/notification_detail_screen.dart';
+import 'package:datasolids_mobile/features/notifications/presentation/screens/notifications_list_screen.dart';
 import 'package:datasolids_mobile/features/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -289,6 +291,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/security/delete-account',
         name: 'security_delete_account',
         builder: (_, __) => const DeleteAccountScreen(),
+      ),
+      // Notifications
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications_list',
+        builder: (_, __) => const NotificationsListScreen(),
+      ),
+      GoRoute(
+        path: '/notifications/:id',
+        name: 'notification_detail',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return NotificationDetailScreen(notificationId: id);
+        },
       ),
       GoRoute(
         path: '/security/recovery-codes-after-setup',

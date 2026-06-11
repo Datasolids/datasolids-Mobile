@@ -10,6 +10,7 @@ import 'package:datasolids_mobile/core/theme/app_colors.dart';
 import 'package:datasolids_mobile/features/home/data/dtos/dashboard_summary.dart';
 import 'package:datasolids_mobile/features/home/presentation/controllers/dashboard_controller.dart';
 import 'package:datasolids_mobile/features/home/presentation/widgets/profile_drawer.dart';
+import 'package:datasolids_mobile/features/notifications/presentation/controllers/notifications_controller.dart';
 import 'package:datasolids_mobile/features/pod/presentation/screens/my_pod_explorer_screen.dart';
 import 'package:datasolids_mobile/features/profile/presentation/controllers/current_user_controller.dart';
 import 'package:datasolids_mobile/features/profile/presentation/widgets/user_avatar.dart';
@@ -467,6 +468,39 @@ class _ChecklistRow extends StatelessWidget {
 // Header — avatar + welcome + bell + menu
 // ─────────────────────────────────────────────────────────────────
 
+/// Small red dot + count overlay for the bell icon. Hidden at zero.
+/// 99+ collapses 3-digit counts so the pill doesn't blow up the layout.
+class _UnreadBellBadge extends StatelessWidget {
+  const _UnreadBellBadge({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0) return const SizedBox.shrink();
+    final label = count > 99 ? '99+' : '$count';
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0524F),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: const Color(0xFFFAF7F2), width: 1.5),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          height: 1.1,
+        ),
+      ),
+    );
+  }
+}
+
+
 class _Header extends ConsumerWidget {
   const _Header({required this.onMenuTap});
   final VoidCallback onMenuTap;
@@ -508,9 +542,21 @@ class _Header extends ConsumerWidget {
             ],
           ),
         ),
-        _CircleIconButton(
-          icon: Icons.notifications_outlined,
-          onTap: () {},
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            _CircleIconButton(
+              icon: Icons.notifications_outlined,
+              onTap: () => context.push('/notifications'),
+            ),
+            // Unread badge — anchored to the icon's top-right corner.
+            Positioned(
+              top: -2, right: -2,
+              child: _UnreadBellBadge(
+                count: ref.watch(unreadNotificationsCountProvider),
+              ),
+            ),
+          ],
         ),
         const SizedBox(width: 8),
         _CircleIconButton(
