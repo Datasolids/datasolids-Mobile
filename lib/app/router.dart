@@ -44,6 +44,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: false,
     refreshListenable: ref.watch(authStateChangesProvider),
     redirect: (context, state) {
+      // While the splash is still rehydrating the keychain, stay on '/'.
+      // Without this we'd flash /login for a returning signed-in user
+      // because the initial AuthState is `unknown` (treated as not
+      // logged-in) until warmFromStorage finishes.
+      if (auth.isWarming) {
+        return state.matchedLocation == '/' ? null : '/';
+      }
       final loggedIn = auth.isAuthenticated;
       final atSplash = state.matchedLocation == '/';
       // Paths reachable when logged out. Two groups:

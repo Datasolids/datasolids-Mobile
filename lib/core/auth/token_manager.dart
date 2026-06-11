@@ -72,10 +72,43 @@ class TokenManager {
   /// Call from bootstrap once the app first frames — warms the router's
   /// `authStateProvider` from the keychain so we don't flash /login
   /// for a returning signed-in user.
+  ///
+  /// Logic:
+  ///   1. If the access token in the keychain is still valid → signed in.
+  ///   2. If access is expired but a refresh token exists → try refreshing
+  ///      against the backend. If that succeeds we stay signed in; if it
+  ///      fails (refresh expired, revoked, or password changed since)
+  ///      we wipe the keychain and the router takes them to /login.
+  ///   3. If neither token exists → signed out.
+  ///
+  /// This is what makes "close app → reopen later → still signed in"
+  /// work. Access tokens are short-lived (15min) — without the refresh
+  /// fallback every reopen after lunch would land on /login.
   Future<void> warmFromStorage() async {
-    final token = await _storage.readAccessToken();
-    final valid = token != null && !JwtDecoder.isExpired(token);
-    _ref.setAuthenticated(value: valid);
+    final access = await _storage.readAccessToken();
+    if (access != null && access.isNotEmpty &&
+        !JwtDecoder.isExpired(access)) {
+      _ref.setAuthenticated(value: true);
+      return;
+    }
+
+    // Access is missing or stale — try to revive the session from the
+    // long-lived refresh token before giving up.
+    final refreshToken = await _storage.readRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      _ref.setAuthenticated(value: false);
+      return;
+    }
+
+    final ok = await refresh();
+    if (ok) {
+      _ref.setAuthenticated(value: true);
+    } else {
+      // Refresh token is invalid (expired, revoked, account disabled,
+      // password changed). Wipe so the next launch doesn't retry it.
+      await _storage.clearAll();
+      _ref.setAuthenticated(value: false);
+    }
   }
 }
 

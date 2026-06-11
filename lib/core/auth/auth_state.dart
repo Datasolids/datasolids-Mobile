@@ -2,18 +2,29 @@ import 'package:datasolids_mobile/core/auth/token_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Trivial wrapper over the token manager so the router can read
-/// authentication state synchronously after the first frame.
+/// Tri-state auth so the router can distinguish "we haven't checked
+/// the keychain yet" from "checked → no valid session". The splash
+/// stays mounted as long as state is [unknown]; once warmFromStorage
+/// flips it to [authenticated] / [unauthenticated] the redirect picks
+/// the right destination.
 class AuthState {
-  const AuthState({required this.isAuthenticated});
-  final bool isAuthenticated;
+  const AuthState._(this._kind);
+  final _Kind _kind;
 
-  static const unknown = AuthState(isAuthenticated: false);
+  bool get isAuthenticated => _kind == _Kind.authenticated;
+  bool get isWarming => _kind == _Kind.unknown;
+
+  static const unknown = AuthState._(_Kind.unknown);
+  static const authenticated = AuthState._(_Kind.authenticated);
+  static const unauthenticated = AuthState._(_Kind.unauthenticated);
 }
 
+enum _Kind { unknown, authenticated, unauthenticated }
+
 final authStateProvider = StateProvider<AuthState>((ref) {
-  // The TokenManager warms this on bootstrap; until then the router
-  // shows the splash screen.
+  // Starts as unknown — the splash kicks off `warmFromStorage` which
+  // flips this to authenticated / unauthenticated. The router holds
+  // the user on the splash while we're in this state.
   return AuthState.unknown;
 });
 
@@ -38,7 +49,7 @@ class _AuthChangeNotifier extends ChangeNotifier {
 extension AuthStateRefX on Ref {
   void setAuthenticated({required bool value}) {
     read(authStateProvider.notifier).state =
-        AuthState(isAuthenticated: value);
+        value ? AuthState.authenticated : AuthState.unauthenticated;
   }
 }
 
