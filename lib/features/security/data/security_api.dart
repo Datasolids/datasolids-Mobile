@@ -71,14 +71,16 @@ class SecurityApi {
     return raw.map((e) => e.toString()).toList();
   }
 
-  Future<void> disableMfa({
-    required String password,
-    required String code,
-  }) async {
-    await _dio.post<void>(
-      '/auth/mfa/disable/',
-      data: {'password': password, 'code': code},
-    );
+  /// Disable MFA. Pass either [password] or [code] (TOTP). Backend accepts
+  /// password as the recovery path for users who lost their authenticator;
+  /// a current TOTP code is the belt-and-suspenders alternative.
+  Future<void> disableMfa({String? password, String? code}) async {
+    final body = <String, dynamic>{};
+    if (password != null && password.isNotEmpty) {
+      body['current_password'] = password;
+    }
+    if (code != null && code.isNotEmpty) body['code'] = code;
+    await _dio.post<void>('/auth/mfa/disable/', data: body);
   }
 
   Future<List<String>> regenerateRecoveryCodes() async {
@@ -121,6 +123,31 @@ class SecurityApi {
       },
     );
     return resp.data ?? const {};
+  }
+
+  // ----- Account deletion --------------------------------------------------
+
+  /// Schedule a 30-day soft delete. Throws on 400 (wrong password) so
+  /// the controller can surface a friendly error.
+  Future<AccountDeletionStatus> scheduleAccountDeletion({
+    required String password,
+  }) async {
+    final resp = await _dio.post<Map<String, dynamic>>(
+      '/auth/account/delete/',
+      data: {'password': password},
+    );
+    return AccountDeletionStatus.fromJson(resp.data ?? const {});
+  }
+
+  Future<AccountDeletionStatus> getAccountDeletionStatus() async {
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/auth/account/delete/',
+    );
+    return AccountDeletionStatus.fromJson(resp.data ?? const {});
+  }
+
+  Future<void> cancelAccountDeletion() async {
+    await _dio.post<void>('/auth/account/delete/cancel/');
   }
 }
 

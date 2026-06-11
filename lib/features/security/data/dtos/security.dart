@@ -21,11 +21,13 @@ class SecurityHome {
     required this.recoveryCodesGenerated,
     required this.recoveryCodesUnusedCount,
     required this.activeSessionsCount,
+    required this.deletionPending,
     this.graceDeadline,
     this.recoveryCodesGeneratedAt,
     this.passwordChangedAt,
     this.lastEventType,
     this.lastEventAt,
+    this.deletionScheduledFor,
   });
 
   final bool mfaEnabled;
@@ -39,6 +41,14 @@ class SecurityHome {
   final DateTime? passwordChangedAt;
   final String? lastEventType;
   final DateTime? lastEventAt;
+  final bool deletionPending;
+  final DateTime? deletionScheduledFor;
+
+  int? get deletionDaysRemaining {
+    if (deletionScheduledFor == null) return null;
+    final d = deletionScheduledFor!.difference(DateTime.now()).inDays;
+    return d < 0 ? 0 : d;
+  }
 
   factory SecurityHome.fromJson(Map<String, dynamic> j) {
     final mfa = (j['mfa'] as Map<String, dynamic>?) ?? const {};
@@ -46,6 +56,7 @@ class SecurityHome {
     final sess = (j['sessions'] as Map<String, dynamic>?) ?? const {};
     final pw = (j['password'] as Map<String, dynamic>?) ?? const {};
     final le = (j['last_event'] as Map<String, dynamic>?) ?? const {};
+    final del = (j['deletion'] as Map<String, dynamic>?) ?? const {};
     return SecurityHome(
       mfaEnabled: mfa['enabled'] as bool? ?? false,
       mfaMethod: (mfa['method'] ?? '').toString(),
@@ -65,8 +76,35 @@ class SecurityHome {
       lastEventType: le['type']?.toString(),
       lastEventAt:
           DateTime.tryParse((le['at'] ?? '').toString())?.toLocal(),
+      deletionPending: del['pending'] as bool? ?? false,
+      deletionScheduledFor: DateTime.tryParse(
+        (del['scheduled_for'] ?? '').toString(),
+      )?.toLocal(),
     );
   }
+}
+
+/// Response from POST /auth/account/delete/ — either confirms a fresh
+/// schedule or reports the existing one.
+class AccountDeletionStatus {
+  const AccountDeletionStatus({
+    required this.pending,
+    this.scheduledFor,
+    this.daysRemaining,
+  });
+
+  final bool pending;
+  final DateTime? scheduledFor;
+  final int? daysRemaining;
+
+  factory AccountDeletionStatus.fromJson(Map<String, dynamic> j) =>
+      AccountDeletionStatus(
+        pending: j['pending'] as bool? ?? false,
+        scheduledFor: DateTime.tryParse(
+          (j['scheduled_for'] ?? '').toString(),
+        )?.toLocal(),
+        daysRemaining: (j['days_remaining'] as num?)?.toInt(),
+      );
 }
 
 class MfaSetupChallenge {

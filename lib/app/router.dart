@@ -24,6 +24,8 @@ import 'package:datasolids_mobile/features/profile/presentation/screens/personal
 import 'package:datasolids_mobile/features/security/presentation/screens/active_sessions_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/change_password_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/mfa_setup_flow.dart';
+import 'package:datasolids_mobile/features/security/presentation/screens/mfa_status_screen.dart';
+import 'package:datasolids_mobile/features/security/presentation/screens/delete_account_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/security_activity_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/security_home_screen.dart';
 import 'package:datasolids_mobile/features/splash/splash_screen.dart';
@@ -210,6 +212,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const SecurityHomeScreen(),
       ),
       GoRoute(
+        path: '/security/mfa-status',
+        name: 'security_mfa_status',
+        builder: (_, __) => const MfaStatusScreen(),
+      ),
+      GoRoute(
         path: '/security/mfa-choose',
         name: 'security_mfa_choose',
         builder: (_, __) => const MfaMethodChoiceScreen(),
@@ -243,6 +250,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/security/password',
         name: 'security_change_password',
         builder: (_, __) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
+        path: '/security/delete-account',
+        name: 'security_delete_account',
+        builder: (_, __) => const DeleteAccountScreen(),
       ),
       GoRoute(
         path: '/security/recovery-codes-after-setup',

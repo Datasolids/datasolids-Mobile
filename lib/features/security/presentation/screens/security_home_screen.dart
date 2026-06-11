@@ -254,13 +254,15 @@ class _SecurityRows extends StatelessWidget {
             icon: Icons.delete_outline,
             iconColor: const Color(0xFFA42D2D),
             title: 'Delete account',
-            subtitle: 'Permanently remove data',
+            subtitle: home.deletionPending
+                ? 'Scheduled · ${home.deletionDaysRemaining ?? 30} days left'
+                : 'Permanently remove data',
             titleColor: const Color(0xFFA42D2D),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('Account deletion will be added soon.'),
-              ));
-            },
+            trailingPill: home.deletionPending
+                ? const _Pill(label: 'PENDING',
+                              bg: Color(0xFFFFEFEC), fg: Color(0xFFA42D2D))
+                : null,
+            onTap: () => context.push('/security/delete-account'),
           ),
         ],
       ),
