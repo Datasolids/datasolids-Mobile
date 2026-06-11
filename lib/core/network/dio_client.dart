@@ -34,6 +34,7 @@ String _appUserAgent() {
 /// arg — they don't construct their own.
 final dioProvider = Provider<Dio>((ref) {
   final deviceId = ref.watch(deviceIdManagerProvider).value;
+  final deviceName = ref.watch(deviceModelNameProvider);
   final dio = Dio(
     BaseOptions(
       baseUrl: '${Env.instance.apiBaseUrl}/api/v1',
@@ -47,6 +48,10 @@ final dioProvider = Provider<Dio>((ref) {
         // Stable per-install id — survives logout/login so the backend
         // can dedupe LoginSession rows per physical device.
         'X-Device-Id': deviceId,
+        // Marketing name of the physical device ("Galaxy S24 Ultra",
+        // "iPhone 15 Pro"). Backend uses this as device_label, falling
+        // back to a UA sniff when the header is absent.
+        'X-Device-Name': deviceName,
       },
       // Don't auto-throw on 4xx — we want to inspect the body. The
       // ErrorInterceptor wraps non-2xx into typed AppFailure later.

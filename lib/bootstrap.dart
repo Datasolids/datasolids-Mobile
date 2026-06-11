@@ -22,6 +22,7 @@ import 'package:datasolids_mobile/app/observers.dart';
 import 'package:datasolids_mobile/core/config/env.dart';
 import 'package:datasolids_mobile/core/config/flavor.dart';
 import 'package:datasolids_mobile/core/device/device_id.dart';
+import 'package:datasolids_mobile/core/device/device_name.dart';
 import 'package:datasolids_mobile/core/logging/logger.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -61,6 +62,10 @@ Future<void> bootstrap({required Flavor flavor}) async {
       final prefs = await SharedPreferences.getInstance();
       final deviceIdManager = DeviceIdManager(prefs);
       await deviceIdManager.load();
+      // Resolve the real device model name (e.g. "Galaxy S24 Ultra")
+      // so the Active Sessions screen can show "Galaxy S24 Ultra"
+      // instead of the generic "Android phone".
+      final deviceName = (await DeviceName.resolve()).value;
 
       // Pre-Sentry error trap. Anything thrown before we wire Sentry
       // below still reaches the log.
@@ -85,6 +90,7 @@ Future<void> bootstrap({required Flavor flavor}) async {
               // synchronously via ref.watch.
               sharedPreferencesProvider.overrideWithValue(prefs),
               deviceIdManagerProvider.overrideWithValue(deviceIdManager),
+              deviceModelNameProvider.overrideWithValue(deviceName),
             ],
             child: const DatasolidsApp(),
           ),

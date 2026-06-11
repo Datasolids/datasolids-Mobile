@@ -62,3 +62,13 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 final deviceIdManagerProvider = Provider<DeviceIdManager>((ref) {
   return DeviceIdManager(ref.watch(sharedPreferencesProvider));
 });
+
+/// Resolved device model name (e.g. "Galaxy S24 Ultra", "iPhone 15 Pro").
+/// Injected by bootstrap; throws if read before bootstrap finishes so we
+/// catch wiring bugs early instead of shipping "Android phone" forever.
+final deviceModelNameProvider = Provider<String>((ref) {
+  throw UnimplementedError(
+    'deviceModelNameProvider must be overridden in bootstrap with the '
+    'awaited DeviceName.resolve() result.',
+  );
+});

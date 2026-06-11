@@ -96,6 +96,10 @@ dependencies:
   # UUIDs for the per-install device id (Active Sessions dedup).
   uuid: ^4.5.1
 
+  # Real device model names for Active Sessions ("Galaxy S24",
+  # "iPhone 15 Pro") rather than the generic "Android phone".
+  device_info_plus: ^11.1.0
+
 # ────────────────────────────────────────────────────────────────────────────
 # Dev dependencies — code generation, testing, linting
 # ────────────────────────────────────────────────────────────────────────────
