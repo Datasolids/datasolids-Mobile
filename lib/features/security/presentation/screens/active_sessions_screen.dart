@@ -267,12 +267,32 @@ class _SessionCard extends StatelessWidget {
 
   static String _locationLine(LoginSessionItem s) {
     final pieces = <String>[];
-    if ((s.city ?? '').isNotEmpty) pieces.add(s.city!);
-    if ((s.ipAddress ?? '').isNotEmpty && (s.city ?? '').isEmpty) {
+    if ((s.city ?? '').isNotEmpty) {
+      pieces.add(s.city!);
+    } else if ((s.ipAddress ?? '').isNotEmpty &&
+               !_isPrivateOrLoopback(s.ipAddress!)) {
+      // Surface raw IPs only when they're routable — on dev builds
+      // we'd otherwise see "10.0.2.2 · Active now" which is useless.
+      // Once server-side geo-IP populates s.city the branch above wins.
       pieces.add(s.ipAddress!);
     }
     pieces.add(_relativeTime(s.lastActiveAt));
     return pieces.join(' · ');
+  }
+
+  static bool _isPrivateOrLoopback(String ip) {
+    if (ip == 'localhost') return true;
+    if (ip.startsWith('127.') || ip.startsWith('10.') ||
+        ip.startsWith('192.168.')) return true;
+    if (ip.startsWith('172.')) {
+      final parts = ip.split('.');
+      if (parts.length > 1) {
+        final second = int.tryParse(parts[1]) ?? 0;
+        if (second >= 16 && second <= 31) return true;
+      }
+    }
+    if (ip == '::1' || ip.toLowerCase().startsWith('fe80:')) return true;
+    return false;
   }
 
   static String _relativeTime(DateTime? t) {
