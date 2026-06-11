@@ -55,9 +55,12 @@ Future<void> bootstrap({required Flavor flavor}) async {
 
       // Open SharedPreferences once, then materialize the per-install
       // device id so the Dio interceptor can stamp X-Device-Id on
-      // every request synchronously.
+      // every request synchronously. We hold on to the SAME manager
+      // instance and inject it into the provider below — building a
+      // fresh manager inside the provider would lose the loaded value.
       final prefs = await SharedPreferences.getInstance();
-      await DeviceIdManager(prefs).load();
+      final deviceIdManager = DeviceIdManager(prefs);
+      await deviceIdManager.load();
 
       // Pre-Sentry error trap. Anything thrown before we wire Sentry
       // below still reaches the log.
@@ -76,10 +79,12 @@ Future<void> bootstrap({required Flavor flavor}) async {
           ProviderScope(
             observers: const [AppProviderObserver()],
             overrides: [
-              // The provider declaration throws by default — we supply
-              // the real opened SharedPreferences here so feature code
-              // can read it synchronously via ref.watch.
+              // The provider declarations throw by default — we supply
+              // the real opened SharedPreferences and the already-
+              // loaded DeviceIdManager so feature code can read both
+              // synchronously via ref.watch.
               sharedPreferencesProvider.overrideWithValue(prefs),
+              deviceIdManagerProvider.overrideWithValue(deviceIdManager),
             ],
             child: const DatasolidsApp(),
           ),
