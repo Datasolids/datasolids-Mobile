@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:datasolids_mobile/core/config/env.dart';
 import 'package:datasolids_mobile/core/config/flavor.dart';
+import 'package:datasolids_mobile/core/device/device_id.dart';
 import 'package:datasolids_mobile/core/network/interceptors/auth_interceptor.dart';
 import 'package:datasolids_mobile/core/network/interceptors/error_interceptor.dart';
 import 'package:dio/dio.dart';
@@ -32,6 +33,7 @@ String _appUserAgent() {
 /// (Retrofit-generated or hand-written) take this Dio as a constructor
 /// arg — they don't construct their own.
 final dioProvider = Provider<Dio>((ref) {
+  final deviceId = ref.watch(deviceIdManagerProvider).value;
   final dio = Dio(
     BaseOptions(
       baseUrl: '${Env.instance.apiBaseUrl}/api/v1',
@@ -42,6 +44,9 @@ final dioProvider = Provider<Dio>((ref) {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'User-Agent': _appUserAgent(),
+        // Stable per-install id — survives logout/login so the backend
+        // can dedupe LoginSession rows per physical device.
+        'X-Device-Id': deviceId,
       },
       // Don't auto-throw on 4xx — we want to inspect the body. The
       // ErrorInterceptor wraps non-2xx into typed AppFailure later.

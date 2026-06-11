@@ -93,6 +93,9 @@ dependencies:
   # QR code rendering for the MFA TOTP setup screen.
   qr_flutter: ^4.1.0
 
+  # UUIDs for the per-install device id (Active Sessions dedup).
+  uuid: ^4.5.1
+
 # ────────────────────────────────────────────────────────────────────────────
 # Dev dependencies — code generation, testing, linting
 # ────────────────────────────────────────────────────────────────────────────

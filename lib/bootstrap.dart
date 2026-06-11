@@ -21,12 +21,14 @@ import 'package:datasolids_mobile/app/app.dart';
 import 'package:datasolids_mobile/app/observers.dart';
 import 'package:datasolids_mobile/core/config/env.dart';
 import 'package:datasolids_mobile/core/config/flavor.dart';
+import 'package:datasolids_mobile/core/device/device_id.dart';
 import 'package:datasolids_mobile/core/logging/logger.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/config/flavor.dart';
 
@@ -51,6 +53,12 @@ Future<void> bootstrap({required Flavor flavor}) async {
       // Build the immutable runtime config.
       Env.initialize(flavor: flavor);
 
+      // Open SharedPreferences once, then materialize the per-install
+      // device id so the Dio interceptor can stamp X-Device-Id on
+      // every request synchronously.
+      final prefs = await SharedPreferences.getInstance();
+      await DeviceIdManager(prefs).load();
+
       // Pre-Sentry error trap. Anything thrown before we wire Sentry
       // below still reaches the log.
       FlutterError.onError = (details) {
@@ -65,9 +73,15 @@ Future<void> bootstrap({required Flavor flavor}) async {
       // in the console, not in someone's dashboard.
       Future<void> runApp() async {
         runApp_(
-          const ProviderScope(
-            observers: [AppProviderObserver()],
-            child: DatasolidsApp(),
+          ProviderScope(
+            observers: const [AppProviderObserver()],
+            overrides: [
+              // The provider declaration throws by default — we supply
+              // the real opened SharedPreferences here so feature code
+              // can read it synchronously via ref.watch.
+              sharedPreferencesProvider.overrideWithValue(prefs),
+            ],
+            child: const DatasolidsApp(),
           ),
         );
       }

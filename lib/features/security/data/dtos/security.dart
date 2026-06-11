@@ -128,6 +128,9 @@ class LoginSessionItem {
     required this.isCurrent,
     this.ipAddress,
     this.city,
+    this.region,
+    this.country,
+    this.location,
     this.createdAt,
     this.lastActiveAt,
   });
@@ -138,6 +141,11 @@ class LoginSessionItem {
   final String userAgent;
   final String? ipAddress;
   final String? city;
+  final String? region;
+  final String? country;
+  /// Pre-formatted "Raleigh, North Carolina" string from the backend
+  /// (preferred over piecing city/region together on the client).
+  final String? location;
   final DateTime? createdAt;
   final DateTime? lastActiveAt;
   final bool isCurrent;
@@ -150,6 +158,9 @@ class LoginSessionItem {
         userAgent: (j['user_agent'] ?? '').toString(),
         ipAddress: j['ip_address']?.toString(),
         city: j['city']?.toString(),
+        region: j['region']?.toString(),
+        country: j['country']?.toString(),
+        location: j['location']?.toString(),
         createdAt:
             DateTime.tryParse((j['created_at'] ?? '').toString())?.toLocal(),
         lastActiveAt: DateTime.tryParse(

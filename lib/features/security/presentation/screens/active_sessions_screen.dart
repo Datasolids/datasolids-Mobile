@@ -267,13 +267,17 @@ class _SessionCard extends StatelessWidget {
 
   static String _locationLine(LoginSessionItem s) {
     final pieces = <String>[];
-    if ((s.city ?? '').isNotEmpty) {
+    // Backend pre-formats "Raleigh, North Carolina" for us; prefer it.
+    if ((s.location ?? '').isNotEmpty) {
+      pieces.add(s.location!);
+    } else if ((s.city ?? '').isNotEmpty) {
       pieces.add(s.city!);
-    } else if ((s.ipAddress ?? '').isNotEmpty &&
-               !_isPrivateOrLoopback(s.ipAddress!)) {
-      // Surface raw IPs only when they're routable — on dev builds
-      // we'd otherwise see "10.0.2.2 · Active now" which is useless.
-      // Once server-side geo-IP populates s.city the branch above wins.
+    }
+    // No useful address available — fall back to a routable IP if any
+    // (private/loopback addresses are filtered so we don't show 10.0.x).
+    if (pieces.isEmpty &&
+        (s.ipAddress ?? '').isNotEmpty &&
+        !_isPrivateOrLoopback(s.ipAddress!)) {
       pieces.add(s.ipAddress!);
     }
     pieces.add(_relativeTime(s.lastActiveAt));
