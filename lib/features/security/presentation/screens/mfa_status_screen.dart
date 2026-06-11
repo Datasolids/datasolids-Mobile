@@ -24,7 +24,20 @@ class MfaStatusScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(securityHomeControllerProvider);
+    final state = ref.watch(securityHomeControllerProvider);
+
+    Widget body;
+    if (state.home != null) {
+      body = _Body(home: state.home!);
+    } else if (state.errorMessage != null) {
+      body = _ErrorBlock(
+        onRetry: () => ref
+            .read(securityHomeControllerProvider.notifier)
+            .refresh(),
+      );
+    } else {
+      body = const Center(child: CircularProgressIndicator());
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F2),
@@ -44,18 +57,7 @@ class MfaStatusScreen extends ConsumerWidget {
           ),
         ),
       ),
-      body: SafeArea(
-        top: false,
-        child: async.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => _ErrorBlock(
-            onRetry: () => ref
-                .read(securityHomeControllerProvider.notifier)
-                .refresh(),
-          ),
-          data: (home) => _Body(home: home),
-        ),
-      ),
+      body: SafeArea(top: false, child: body),
     );
   }
 }

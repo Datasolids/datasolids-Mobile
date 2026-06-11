@@ -98,7 +98,25 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final async = ref.watch(securityHomeControllerProvider);
+    final state = ref.watch(securityHomeControllerProvider);
+
+    Widget body;
+    if (state.home != null) {
+      final home = state.home!;
+      body = home.deletionPending
+          ? _PendingState(
+              home: home,
+              onCancel: _cancel,
+              isSubmitting: _isSubmitting,
+            )
+          : _buildConfirmForm();
+    } else if (state.errorMessage != null) {
+      body = const Center(
+        child: Text("Couldn't load your account status"),
+      );
+    } else {
+      body = const Center(child: CircularProgressIndicator());
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F2),
@@ -118,19 +136,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
           ),
         ),
       ),
-      body: SafeArea(
-        top: false,
-        child: async.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const Center(
-            child: Text("Couldn't load your account status"),
-          ),
-          data: (home) => home.deletionPending
-              ? _PendingState(home: home, onCancel: _cancel,
-                              isSubmitting: _isSubmitting)
-              : _buildConfirmForm(),
-        ),
-      ),
+      body: SafeArea(top: false, child: body),
     );
   }
 
