@@ -344,7 +344,13 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
           const SizedBox(height: 8),
           Center(
             child: TextButton(
-              onPressed: () => context.pop(),
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/security');
+                }
+              },
               child: Text(
                 'Keep my account',
                 style: TextStyle(

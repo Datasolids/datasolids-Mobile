@@ -360,11 +360,17 @@ class _Body extends ConsumerWidget {
     );
     if (disabled == true && context.mounted) {
       await ref.read(securityHomeControllerProvider.notifier).refresh();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Two-factor authentication is off.'),
-        ));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Two-factor authentication is off.'),
+      ));
+      // Safe pop: if this screen is the only thing on the stack
+      // (e.g. deep-linked here), fall back to /security instead of
+      // popping into the void.
+      if (context.canPop()) {
         context.pop();
+      } else {
+        context.go('/security');
       }
     }
   }

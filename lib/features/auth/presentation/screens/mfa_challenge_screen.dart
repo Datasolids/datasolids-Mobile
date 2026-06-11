@@ -95,11 +95,19 @@ class _MfaChallengeScreenState extends ConsumerState<MfaChallengeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Back button (white rounded square)
+              // Back button (white rounded square). Returns to /login
+              // if there's nothing on the stack (push from login adds a
+              // page; cold-launch to /mfa-challenge does not).
               Align(
                 alignment: Alignment.centerLeft,
                 child: InkResponse(
-                  onTap: () => Navigator.of(context).pop(),
+                  onTap: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/login');
+                    }
+                  },
                   radius: 26,
                   child: Container(
                     width: 44, height: 44,
