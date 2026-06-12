@@ -43,6 +43,19 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Tell Firebase Messaging which channel to drop pushes into
+             when the app is cold (no activity has registered the
+             channel yet). Must match the channel id we create in
+             MainActivity.onCreate. Without this, pushes that arrive
+             before MainActivity boots get dropped silently. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="datasolids_default" />
+        <!-- Brand tint for the small icon on the status bar. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_color" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Datasolids brand teal — used to tint the small icon on
+         status-bar notifications. Referenced by the
+         com.google.firebase.messaging.default_notification_color
+         meta-data tag in AndroidManifest.xml. -->
+    <color name="notification_color">#319795</color>
+</resources>

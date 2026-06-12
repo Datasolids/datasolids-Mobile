@@ -27,16 +27,39 @@ import 'package:datasolids_mobile/features/notifications/presentation/controller
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 
 /// Background handler — Firebase requires this be a top-level function
 /// (it runs in a separate isolate). We can't touch Riverpod or UI from
-/// here; the OS itself shows the notification. Use this only for
-/// extracting data / analytics if needed later.
+/// here; the OS itself shows the notification. We CAN call
+/// FlutterAppBadger because it talks to the platform launcher
+/// directly without needing the app to be running.
 @pragma('vm:entry-point')
 Future<void> _backgroundMessageHandler(RemoteMessage message) async {
   appLogger.i('Push received in background: ${message.messageId}');
+  await _applyBadgeFromMessage(message);
+}
+
+/// Reads `unread_count` from the FCM data payload and writes it to the
+/// OS launcher badge. Safe to call from any isolate — flutter_app_badger
+/// is platform-channel-only, no Riverpod dependency.
+Future<void> _applyBadgeFromMessage(RemoteMessage msg) async {
+  try {
+    final raw = msg.data['unread_count']?.toString() ?? '';
+    final count = int.tryParse(raw) ?? 0;
+    final supported = await FlutterAppBadger.isAppBadgeSupported();
+    if (!supported) return;
+    if (count <= 0) {
+      await FlutterAppBadger.removeBadge();
+    } else {
+      await FlutterAppBadger.updateBadgeCount(count);
+    }
+  } catch (e) {
+    // Best-effort — never crash a push handler over a badge.
+    appLogger.w('Could not update launcher badge: $e');
+  }
 }
 
 
@@ -135,12 +158,13 @@ class PushNotificationService {
 
   void _onForegroundMessage(RemoteMessage msg) {
     // Bump the feed so the new notification shows in the list right
-    // away and the unread badge ticks up without waiting for a refresh.
+    // away and the in-app unread badge ticks up.
     unawaited(
       _ref.read(notificationsFeedControllerProvider.notifier).refresh(),
     );
-    // The OS already shows a heads-up on Android in the foreground; on
-    // iOS we configured presentation options via the messaging plugin.
+    // Repaint the launcher icon badge — handler runs in the main
+    // isolate so the foreground app and the launcher stay in sync.
+    unawaited(_applyBadgeFromMessage(msg));
   }
 
   void _onMessageOpened(RemoteMessage msg) {

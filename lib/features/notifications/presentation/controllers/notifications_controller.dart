@@ -17,6 +17,7 @@ import 'dart:async';
 
 import 'package:datasolids_mobile/features/notifications/data/dtos/notification.dart';
 import 'package:datasolids_mobile/features/notifications/data/notifications_api.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 
@@ -172,8 +173,27 @@ final notificationsFeedControllerProvider = StateNotifierProvider<
 /// Bell-badge count for the home header. Reads from the feed controller
 /// so it updates the instant the user taps "Mark all read".
 final unreadNotificationsCountProvider = Provider<int>((ref) {
-  return ref.watch(notificationsFeedControllerProvider).unreadCount;
+  final count = ref.watch(notificationsFeedControllerProvider).unreadCount;
+  // Also write through to the OS launcher icon so the dot/number on
+  // the home screen stays in sync with the in-app bell badge. Wrapped
+  // so a platform that doesn't support badges (some custom launchers)
+  // doesn't take down the providers.
+  unawaited(_writeLauncherBadge(count));
+  return count;
 });
+
+Future<void> _writeLauncherBadge(int count) async {
+  try {
+    if (!await FlutterAppBadger.isAppBadgeSupported()) return;
+    if (count <= 0) {
+      await FlutterAppBadger.removeBadge();
+    } else {
+      await FlutterAppBadger.updateBadgeCount(count);
+    }
+  } catch (_) {
+    // best-effort
+  }
+}
 
 
 /// Single-notification detail. We try the cached list first so opening
