@@ -66,7 +66,13 @@ dependencies:
   app_links: ^6.3.2
 
   # Crash reporting + logging
-  sentry_flutter: ^8.9.0
+  # sentry_flutter: ^8.9.0
+  # ↑ Disabled until we set up Sentry properly. The latest 8.x plugin
+  # auto-registers via Swift Package Manager and conflicts with the
+  # Sentry-Cocoa pin in Podfile, breaking the iOS build with
+  # "Multiple commands produce Sentry" + a stale `.image` API call.
+  # Re-enable by uncommenting + pinning Podfile `pod 'Sentry', '8.36.0'`
+  # AND removing sentry-cocoa from Xcode's Package Dependencies.
   logger: ^2.4.0
 
   # Network state
@@ -100,11 +106,9 @@ dependencies:
   # "iPhone 15 Pro") rather than the generic "Android phone".
   device_info_plus: ^11.1.0
 
-  # Push notifications (FCM / APNs-via-FCM). firebase_core is required
-  # for firebase_messaging to initialize. Both no-op gracefully when
-  # google-services.json / GoogleService-Info.plist are missing.
-  firebase_core: ^3.6.0
-  firebase_messaging: ^15.1.3
+  # Push notifications (FCM + APNs-via-FCM) are pulled in higher up
+  # via firebase_core + firebase_messaging — see the "Notifications
+  # + deep links" section.
 
 # ────────────────────────────────────────────────────────────────────────────
 # Dev dependencies — code generation, testing, linting

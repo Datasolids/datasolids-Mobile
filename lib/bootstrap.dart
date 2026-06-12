@@ -28,7 +28,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
+// import 'package:sentry_flutter/sentry_flutter.dart';
+// ↑ Disabled — see pubspec.yaml note. Re-enable when Sentry is
+// reconfigured to play nicely with SPM + the Podfile pin.
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/config/flavor.dart';
@@ -97,27 +99,14 @@ Future<void> bootstrap({required Flavor flavor}) async {
         );
       }
 
-      if (Env.instance.sentryEnabled) {
-        await SentryFlutter.init(
-          (options) {
-            options
-              ..dsn = Env.instance.sentryDsn
-              ..environment = flavor.name
-              ..tracesSampleRate = 0.2
-              ..attachStacktrace = true
-              ..sendDefaultPii = false;
-          },
-          appRunner: runApp,
-        );
-      } else {
-        await runApp();
-      }
+      // Sentry temporarily disabled — runApp directly. When sentry_flutter
+      // is re-enabled in pubspec.yaml, restore the if/else with
+      // SentryFlutter.init(..., appRunner: runApp) here.
+      await runApp();
     },
     (error, stack) {
       appLogger.e('Uncaught zone error', error: error, stackTrace: stack);
-      if (Env.instance.sentryEnabled) {
-        unawaited(Sentry.captureException(error, stackTrace: stack));
-      }
+      // Sentry capture also disabled; surface via the local logger only.
     },
   );
 }

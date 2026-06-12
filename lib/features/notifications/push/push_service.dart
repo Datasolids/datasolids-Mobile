@@ -73,8 +73,6 @@ class PushNotificationService {
     );
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
       appLogger.i('Push permission denied');
-      // Still listen for token refreshes in case the user toggles it
-      // back on from Settings.
     }
 
     FirebaseMessaging.onBackgroundMessage(_backgroundMessageHandler);
@@ -143,7 +141,6 @@ class PushNotificationService {
     );
     // The OS already shows a heads-up on Android in the foreground; on
     // iOS we configured presentation options via the messaging plugin.
-    // No in-app toast needed unless product asks for one.
   }
 
   void _onMessageOpened(RemoteMessage msg) {
