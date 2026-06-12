@@ -65,7 +65,10 @@ dependencies:
   # Sets the launcher-icon badge count on Android (Samsung, OnePlus,
   # most OEMs) and iOS. The backend ships the unread count in every
   # FCM data payload so we can paint it without an extra round-trip.
-  flutter_app_badger: ^1.5.0
+  # `app_badge_plus` is the maintained fork of flutter_app_badger
+  # (the original is abandoned since 2022 and doesn't declare a
+  # namespace, breaking AGP 8+ builds).
+  app_badge_plus: ^1.1.5
   flutter_local_notifications: ^17.2.3
   app_links: ^6.3.2
 

@@ -24,10 +24,10 @@ import 'package:datasolids_mobile/core/device/device_id.dart';
 import 'package:datasolids_mobile/core/logging/logger.dart';
 import 'package:datasolids_mobile/features/notifications/data/notifications_api.dart';
 import 'package:datasolids_mobile/features/notifications/presentation/controllers/notifications_controller.dart';
+import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 
@@ -43,18 +43,18 @@ Future<void> _backgroundMessageHandler(RemoteMessage message) async {
 }
 
 /// Reads `unread_count` from the FCM data payload and writes it to the
-/// OS launcher badge. Safe to call from any isolate — flutter_app_badger
-/// is platform-channel-only, no Riverpod dependency.
+/// OS launcher badge. Safe to call from any isolate — AppBadgePlus is
+/// platform-channel-only, no Riverpod dependency.
 Future<void> _applyBadgeFromMessage(RemoteMessage msg) async {
   try {
     final raw = msg.data['unread_count']?.toString() ?? '';
     final count = int.tryParse(raw) ?? 0;
-    final supported = await FlutterAppBadger.isAppBadgeSupported();
+    final supported = await AppBadgePlus.isSupported();
     if (!supported) return;
     if (count <= 0) {
-      await FlutterAppBadger.removeBadge();
+      await AppBadgePlus.updateBadge(0);
     } else {
-      await FlutterAppBadger.updateBadgeCount(count);
+      await AppBadgePlus.updateBadge(count);
     }
   } catch (e) {
     // Best-effort — never crash a push handler over a badge.

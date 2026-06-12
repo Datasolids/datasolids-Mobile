@@ -15,9 +15,9 @@
 
 import 'dart:async';
 
+import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:datasolids_mobile/features/notifications/data/dtos/notification.dart';
 import 'package:datasolids_mobile/features/notifications/data/notifications_api.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 
@@ -184,14 +184,12 @@ final unreadNotificationsCountProvider = Provider<int>((ref) {
 
 Future<void> _writeLauncherBadge(int count) async {
   try {
-    if (!await FlutterAppBadger.isAppBadgeSupported()) return;
-    if (count <= 0) {
-      await FlutterAppBadger.removeBadge();
-    } else {
-      await FlutterAppBadger.updateBadgeCount(count);
-    }
+    if (!await AppBadgePlus.isSupported()) return;
+    // updateBadge(0) is the documented way to clear a badge in
+    // app_badge_plus (no separate removeBadge call).
+    await AppBadgePlus.updateBadge(count.clamp(0, 9999));
   } catch (_) {
-    // best-effort
+    // best-effort — silently ignore on launchers that don't honor it
   }
 }
 
