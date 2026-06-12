@@ -106,3 +106,7 @@ fastlane/test_output
 
 # OS files
 Thumbs.db
+
+# Firebase config files — committed via secure secret store, not git
+ios/Runner/GoogleService-Info.plist
+android/app/google-services.json
