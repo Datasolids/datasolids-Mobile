@@ -1,11 +1,12 @@
 allprojects {
     repositories {
-        // Aliyun mirrors first — dramatically faster than the originals
-        // from India / Southeast Asia for Firebase Android SDK.
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
-        maven { url = uri("https://maven.aliyun.com/repository/central") }
+        // Official sources first so plugin markers resolve cleanly.
+        // Aliyun mirrors come second as a fast cache for the heavy
+        // Firebase Android SDK transitive jars.
         google()
         mavenCentral()
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
+        maven { url = uri("https://maven.aliyun.com/repository/central") }
     }
 }
 
