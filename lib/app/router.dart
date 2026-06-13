@@ -31,6 +31,7 @@ import 'package:datasolids_mobile/features/security/presentation/screens/session
 import 'package:datasolids_mobile/features/security/presentation/screens/security_activity_screen.dart';
 import 'package:datasolids_mobile/features/security/presentation/screens/security_home_screen.dart';
 import 'package:datasolids_mobile/features/notifications/presentation/screens/notification_detail_screen.dart';
+import 'package:datasolids_mobile/features/notifications/presentation/screens/notification_settings_screen.dart';
 import 'package:datasolids_mobile/features/notifications/presentation/screens/notifications_list_screen.dart';
 import 'package:datasolids_mobile/features/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
@@ -297,6 +298,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/notifications',
         name: 'notifications_list',
         builder: (_, __) => const NotificationsListScreen(),
+      ),
+      GoRoute(
+        path: '/notifications/settings',
+        name: 'notification_settings',
+        builder: (_, __) => const NotificationSettingsScreen(),
       ),
       GoRoute(
         path: '/notifications/:id',

@@ -4,6 +4,7 @@
 
 import 'package:datasolids_mobile/core/network/dio_client.dart';
 import 'package:datasolids_mobile/features/notifications/data/dtos/notification.dart';
+import 'package:datasolids_mobile/features/notifications/data/dtos/notification_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -79,6 +80,27 @@ class NotificationsApi {
         'token': token,
       },
     );
+  }
+
+  /// Read the user's notification preferences. Backend auto-creates
+  /// default values on first call so this never 404s.
+  Future<NotificationPreferences> getPreferences() async {
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/notifications/preferences/',
+    );
+    return NotificationPreferences.fromJson(resp.data ?? const {});
+  }
+
+  /// Partial update — send only the keys that changed (use
+  /// [NotificationPreferences.diffJson] to compute the delta).
+  Future<NotificationPreferences> updatePreferences(
+    Map<String, dynamic> delta,
+  ) async {
+    final resp = await _dio.patch<Map<String, dynamic>>(
+      '/notifications/preferences/',
+      data: delta,
+    );
+    return NotificationPreferences.fromJson(resp.data ?? const {});
   }
 }
 

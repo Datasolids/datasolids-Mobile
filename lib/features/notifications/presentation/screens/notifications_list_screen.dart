@@ -56,6 +56,12 @@ class NotificationsListScreen extends ConsumerWidget {
               icon: Icon(Icons.done_all,
                   color: AppColors.teal600, size: 22),
             ),
+          IconButton(
+            tooltip: 'Notification settings',
+            onPressed: () => context.push('/notifications/settings'),
+            icon: Icon(Icons.tune,
+                color: AppColors.navy700, size: 22),
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -426,11 +432,7 @@ class _EmptyState extends StatelessWidget {
         const SizedBox(height: 22),
         Center(
           child: TextButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('Notification preferences are coming soon.'),
-              ));
-            },
+            onPressed: () => context.push('/notifications/settings'),
             icon: Icon(Icons.tune,
                 size: 16, color: AppColors.teal600),
             label: Text(
