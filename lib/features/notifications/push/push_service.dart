@@ -22,8 +22,11 @@ import 'dart:io' show Platform;
 import 'package:datasolids_mobile/app/router.dart';
 import 'package:datasolids_mobile/core/device/device_id.dart';
 import 'package:datasolids_mobile/core/logging/logger.dart';
+import 'package:datasolids_mobile/features/notifications/data/dtos/notification.dart';
 import 'package:datasolids_mobile/features/notifications/data/notifications_api.dart';
 import 'package:datasolids_mobile/features/notifications/presentation/controllers/notifications_controller.dart';
+import 'package:datasolids_mobile/features/notifications/presentation/widgets/banner_overlay_service.dart';
+import 'package:datasolids_mobile/features/notifications/push/local_notifications_service.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -33,12 +36,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Background handler — Firebase requires this be a top-level function
 /// (it runs in a separate isolate). We can't touch Riverpod or UI from
-/// here; the OS itself shows the notification. We CAN call
-/// FlutterAppBadger because it talks to the platform launcher
-/// directly without needing the app to be running.
+/// here, but we CAN call into platform-channel services like
+/// FlutterAppBadger and FlutterLocalNotifications. With data-only FCM
+/// (no notification field) it's our responsibility to render the
+/// system-tray notification — that's what showFromData does.
 @pragma('vm:entry-point')
 Future<void> _backgroundMessageHandler(RemoteMessage message) async {
   appLogger.i('Push received in background: ${message.messageId}');
+  await LocalNotificationsService.showFromData(message.data);
   await _applyBadgeFromMessage(message);
 }
 
@@ -71,6 +76,7 @@ class PushNotificationService {
   StreamSubscription<String>? _tokenRefreshSub;
   StreamSubscription<RemoteMessage>? _foregroundSub;
   StreamSubscription<RemoteMessage>? _openedSub;
+  StreamSubscription<NotificationTapEvent>? _localTapSub;
 
   /// Call once on app start (post-authentication). Idempotent.
   Future<void> initialize() async {
@@ -98,16 +104,29 @@ class PushNotificationService {
       appLogger.i('Push permission denied');
     }
 
+    // Boot the local-notifications plugin (idempotent) so taps from
+    // the system tray can deep-link.
+    await LocalNotificationsService.initialize();
+    _localTapSub = LocalNotificationsService.tapStream.listen(_onLocalTap);
+
     FirebaseMessaging.onBackgroundMessage(_backgroundMessageHandler);
     _foregroundSub = FirebaseMessaging.onMessage.listen(_onForegroundMessage);
     _openedSub = FirebaseMessaging.onMessageOpenedApp.listen(_onMessageOpened);
 
-    // Cold-launch from a notification tap.
+    // Cold-launch from a notification tap. Two sources: FCM (when the
+    // OS rendered the notification because it was the simple
+    // notification: payload) and our local notification (when it was
+    // a data-only payload that we rendered via LocalNotifications).
     final initial = await messaging.getInitialMessage();
     if (initial != null) {
-      // Defer the route push until the router is mounted.
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _onMessageOpened(initial),
+      );
+    }
+    final localLaunch = await LocalNotificationsService.getLaunchPayload();
+    if (localLaunch != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _onLocalTap(localLaunch),
       );
     }
 
@@ -165,6 +184,59 @@ class PushNotificationService {
     // Repaint the launcher icon badge — handler runs in the main
     // isolate so the foreground app and the launcher stay in sync.
     unawaited(_applyBadgeFromMessage(msg));
+    // Show an in-app banner toast at the top of the screen. Same
+    // frame the message arrives, no extra round-trip.
+    _showInAppBanner(msg);
+  }
+
+  /// Draw a top banner from an incoming foreground FCM message. We
+  /// build a synthetic NotificationItem so the banner can reuse the
+  /// kind-specific icon/color mapping used elsewhere in the UI.
+  void _showInAppBanner(RemoteMessage msg) {
+    try {
+      final router = _ref.read(routerProvider);
+      final ctx = router.routerDelegate.navigatorKey.currentContext;
+      if (ctx == null) return;
+
+      // FCM separates notification (display layer) from data (deep-link
+      // payload). Title/body live on either depending on platform —
+      // prefer notification.* with data.* as fallback.
+      final title = msg.notification?.title
+                  ?? msg.data['title']?.toString()
+                  ?? 'Notification';
+      final body = msg.notification?.body
+                  ?? msg.data['body']?.toString()
+                  ?? '';
+      final kindRaw = msg.data['kind']?.toString() ?? 'generic';
+      final notifId = msg.data['notification_id']?.toString() ?? '';
+
+      final synthetic = NotificationItem(
+        id: notifId,
+        kind: NotificationKind.parse(kindRaw),
+        title: title,
+        body: body,
+        data: msg.data,
+        createdAt: DateTime.now(),
+        isRead: false,
+        isArchived: false,
+      );
+
+      InAppBannerService.showForNotification(
+        ctx,
+        notification: synthetic,
+        onTap: () {
+          // Deep-link to the detail screen if we have an id, otherwise
+          // go to the feed.
+          if (notifId.isNotEmpty) {
+            router.go('/notifications/$notifId');
+          } else {
+            router.go('/notifications');
+          }
+        },
+      );
+    } catch (e) {
+      appLogger.w('Could not show in-app banner: $e');
+    }
   }
 
   void _onMessageOpened(RemoteMessage msg) {
@@ -173,6 +245,19 @@ class PushNotificationService {
     // Routing through the GoRouter directly (rather than a navigator
     // key) works on cold start because routerProvider is a singleton.
     final id = msg.data['notification_id']?.toString() ?? '';
+    _routeToNotification(id);
+  }
+
+  /// Called when the user taps the rich system notification or one of
+  /// its action buttons. `actionView` deep-links to the detail screen,
+  /// `actionDismiss` is a true no-op (the action button label says
+  /// "Dismiss" but we still respect it).
+  void _onLocalTap(NotificationTapEvent ev) {
+    if (ev.actionId == actionDismiss) return;
+    _routeToNotification(ev.notificationId);
+  }
+
+  void _routeToNotification(String id) {
     try {
       final router = _ref.read(routerProvider);
       if (id.isNotEmpty) {
@@ -189,9 +274,11 @@ class PushNotificationService {
     await _tokenRefreshSub?.cancel();
     await _foregroundSub?.cancel();
     await _openedSub?.cancel();
+    await _localTapSub?.cancel();
     _tokenRefreshSub = null;
     _foregroundSub = null;
     _openedSub = null;
+    _localTapSub = null;
     _initialized = false;
   }
 }
